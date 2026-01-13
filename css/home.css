@@ -1,92 +1,16 @@
-body {
+.banner {
+    width: 100%;
+    height: 150px;
+    background-image: url("/static/RAMPA.jpeg");
+    background-size: cover;
+    background-position: center bottom;
+}
+
+h1 {
+    padding: 30px 30px 10px 30px;
     margin: 0;
-    font-family: Arial, sans-serif;
-  }
-  
-  /* Contenedor principal */
-  .container {
-    display: flex;
-    height: 100vh;
-  }
-  
-  /* Menú izquierdo */
-  .menu {
-    width: 200px;
-    background-color: #148129;
-    color: white;
-    padding: 20px;
-  
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* Links del menú */
-  .menu a {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  
-    color: white;
-    text-decoration: none;
-    margin-bottom: 10px;
-    padding: 8px 8px 8px 14px;
-    border-radius: 4px;
-    position: relative;
-  }
-  
-  /* Hover */
-  .menu a:hover {
-    background-color: #1c9334;
-  }
-  
-  /* Opción activa */
-  .menu a.active {
-    background-color: rgba(255, 255, 255, 0.25);
-    font-weight: bold;
-  }
-  
-  /* Barrita izquierda */
-  .menu a.active::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 4px;
-    height: 100%;
-    background-color: #000;
-  }
-  
-  /* Empuja logout abajo */
-  .menu-links {
-    flex: 1;
-  }
-  
-  /* Cerrar sesión */
-  .logout {
-    margin-top: auto;
-    border-top: 1px solid rgba(255, 255, 255, 0.3);
-    padding-top: 12px;
-  }
-  
-  .logout:hover {
-    background-color: #c0392b;
-  }
-  
-  /* Contenido derecho */
-  .content {
-    flex: 1;
-    padding: 0px;
-    background-color: #f4f4f4;
-  }
-  .banner {
-    width: 100%;
-    height: 175px;   /* área visible */
-    overflow: hidden;
-  }
-  
-  .banner img {
-    width: 100%;
-    height: auto;    /* mantiene tamaño real */
-    transform: translateY(-260px); /* 🔴 MUEVES POR PX */
-  }
-  
+}
+
+p {
+    padding: 0 30px;
+}

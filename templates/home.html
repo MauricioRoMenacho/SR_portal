@@ -1,62 +1,12 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Layout con menú</title>
+{% extends 'layout.html' %}
+{% load static %}
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="../css/home.css">
+{% block title %}Inicio - Sistema{% endblock %}
 
-  <!-- Font Awesome (íconos) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body>
+{% block content %}
+<link rel="stylesheet" href="{% static 'home.css' %}">
 
-  <div class="container">
-
-    <!-- Menú izquierdo -->
-    <div class="menu">
-      <img src = "../imagenes/LPOGO ACTUALIUZAFDO.png" img> <br>
-      <!-- Opciones del menú -->
-      <div class="menu-links">
-        <a href="#">
-          <i class="fa-solid fa-user"></i> Nombre
-        </a>
-
-        <a href="home.html" class="active">
-          <i class="fa-solid fa-house"></i> Inicio
-        </a>
-
-        <a href="#">
-          <i class="fa-solid fa-warehouse"></i> Almacén
-        </a>
-
-        <a href="#">
-          <i class="fa-solid fa-user-gear"></i> Perfil
-        </a>
-
-        <a href="#">
-          <i class="fa-solid fa-gear"></i> Configuración
-        </a>
-      </div>
-
-      <!-- Cerrar sesión abajo -->
-      <a href="#" class="logout">
-        <i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión
-      </a>
-    </div>
-
-    <!-- Contenido derecho -->
-    <div class="content">
-        <div class="banner">
-            <img src="../imagenes/RAMPA.jpeg" alt="Banner">
-          </div>                 
-      <h2>Sobre nosotros</h2>
-      <p>   Selecciona una opción del menú</p>
-      <p>   .</p>
-    </div>
-
-  </div>
-
-</body>
-</html>
+<div class="banner"></div>
+<h1>Bienvenido al Sistema</h1>
+<p>Selecciona una opción del menú lateral.</p>
+{% endblock %}
