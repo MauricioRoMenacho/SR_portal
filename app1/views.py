@@ -4,7 +4,7 @@ from django.contrib.auth import logout
 def inicio(request):
     return render(request, 'home.html')
 
-def almacen(request):
+def almacenes(request):
     return render(request, 'almacenes.html')
 
 def perfil(request):
