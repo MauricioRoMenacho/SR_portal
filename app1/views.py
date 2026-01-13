@@ -5,7 +5,7 @@ def inicio(request):
     return render(request, 'home.html')
 
 def almacen(request):
-    return render(request, 'almacengeneral.html')
+    return render(request, 'almacenes.html')
 
 def perfil(request):
     return render(request, 'perfil.html')

@@ -1,31 +1,40 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
 }
 
-/* Contenedor principal */
 .container {
   display: flex;
   height: 100vh;
 }
 
-/* Menú izquierdo */
 .menu {
-  width: 200px;
+  width: 250px;
   background-color: #148129;
   color: white;
   padding: 20px;
-
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box; 
+}
+.logout {
+  margin-top: auto;
+  margin-bottom: 20px; 
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  padding-top: 12px;
 }
 
-/* Links del menú */
 .menu a {
   display: flex;
   align-items: center;
   gap: 10px;
-
   color: white;
   text-decoration: none;
   margin-bottom: 10px;
@@ -33,19 +42,13 @@ body {
   border-radius: 4px;
   position: relative;
 }
-
-/* Hover */
 .menu a:hover {
   background-color: #1c9334;
 }
-
-/* Opción activa */
 .menu a.active {
   background-color: rgba(255, 255, 255, 0.25);
   font-weight: bold;
 }
-
-/* Barrita izquierda */
 .menu a.active::before {
   content: "";
   position: absolute;
@@ -55,13 +58,9 @@ body {
   height: 100%;
   background-color: #000;
 }
-
-/* Empuja logout abajo */
 .menu-links {
-  flex: 1;
+  flex: 10;
 }
-
-/* Cerrar sesión */
 .logout {
   margin-top: auto;
   border-top: 1px solid rgba(255, 255, 255, 0.3);
@@ -71,10 +70,10 @@ body {
 .logout:hover {
   background-color: #c0392b;
 }
-
-/* Contenido derecho */
 .content {
   flex: 1;
+  margin-left: 240px;
   padding: 0;
   background-color: #f4f4f4;
+  overflow-y: auto;
 }
