@@ -1,0 +1,450 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Inventario Almacén General - Sistema{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/InventarioAG.css' %}">
+
+
+<div class="inventario-container">
+  
+  <!-- Header -->
+  <div class="inventario-header">
+    <h1>
+      <i class="fa-solid fa-boxes-stacked"></i>
+      Inventario - Almacén General
+    </h1>
+    <button class="btn-primary">
+      <i class="fa-solid fa-plus"></i>
+      Agregar Producto
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filtros-container">
+    
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-tag"></i>
+        Tipo de Producto
+      </label>
+      <select id="filtroTipo" class="filtro-input">
+        <option value="">Todos los tipos</option>
+        <option value="herramienta">Herramientas</option>
+        <option value="material">Materiales</option>
+        <option value="equipo">Equipos</option>
+        <option value="mobiliario">Mobiliario</option>
+        <option value="electronico">Electrónicos</option>
+      </select>
+    </div>
+
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-search"></i>
+        Nombre del Producto
+      </label>
+      <input 
+        type="text" 
+        id="filtroNombre" 
+        class="filtro-input" 
+        placeholder="Escribe para buscar..."
+      >
+    </div>
+
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-palette"></i>
+        Color
+      </label>
+      <input 
+        type="text" 
+        id="filtroColor" 
+        class="filtro-input" 
+        placeholder="Ej: Rojo, Azul..."
+      >
+    </div>
+
+    <button class="btn-limpiar" onclick="limpiarFiltros()">
+      <i class="fa-solid fa-eraser"></i>
+      Limpiar Filtros
+    </button>
+
+  </div>
+
+  <!-- Contador de resultados -->
+  <div class="resultados-info">
+    Mostrando <strong id="contadorResultados">12</strong> de <strong id="totalProductos">12</strong> productos
+  </div>
+
+  <!-- Tabla de inventario -->
+  <div class="tabla-container">
+    <table class="tabla-inventario">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Color</th>
+          <th>Cantidad</th>
+          <th>Unidad</th>
+          <th>Ubicación</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaBody">
+        
+        <!-- Producto 1 -->
+        <tr data-tipo="herramienta" data-nombre="Martillo de Goma" data-color="Rojo">
+          <td class="codigo">HER-001</td>
+          <td class="nombre">Martillo de Goma</td>
+          <td><span class="badge tipo-herramienta">Herramienta</span></td>
+          <td>Rojo</td>
+          <td class="cantidad">25</td>
+          <td>Piezas</td>
+          <td>Estante A3</td>
+          <td><span class="badge estado-disponible">Disponible</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 2 -->
+        <tr data-tipo="material" data-nombre="Pintura Látex Blanca" data-color="Blanco">
+          <td class="codigo">MAT-012</td>
+          <td class="nombre">Pintura Látex Blanca</td>
+          <td><span class="badge tipo-material">Material</span></td>
+          <td>Blanco</td>
+          <td class="cantidad">8</td>
+          <td>Galones</td>
+          <td>Bodega B1</td>
+          <td><span class="badge estado-bajo">Stock Bajo</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 3 -->
+        <tr data-tipo="equipo" data-nombre="Taladro Inalámbrico" data-color="Negro">
+          <td class="codigo">EQU-005</td>
+          <td class="nombre">Taladro Inalámbrico</td>
+          <td><span class="badge tipo-equipo">Equipo</span></td>
+          <td>Negro</td>
+          <td class="cantidad">12</td>
+          <td>Piezas</td>
+          <td>Estante C2</td>
+          <td><span class="badge estado-disponible">Disponible</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 4 -->
+        <tr data-tipo="mobiliario" data-nombre="Silla de Oficina Ergonómica" data-color="Azul">
+          <td class="codigo">MOB-018</td>
+          <td class="nombre">Silla de Oficina Ergonómica</td>
+          <td><span class="badge tipo-mobiliario">Mobiliario</span></td>
+          <td>Azul</td>
+          <td class="cantidad">15</td>
+          <td>Piezas</td>
+          <td>Almacén D</td>
+          <td><span class="badge estado-disponible">Disponible</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 5 -->
+        <tr data-tipo="herramienta" data-nombre="Destornillador Phillips" data-color="Amarillo">
+          <td class="codigo">HER-023</td>
+          <td class="nombre">Destornillador Phillips</td>
+          <td><span class="badge tipo-herramienta">Herramienta</span></td>
+          <td>Amarillo</td>
+          <td class="cantidad">40</td>
+          <td>Piezas</td>
+          <td>Estante A5</td>
+          <td><span class="badge estado-disponible">Disponible</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 6 -->
+        <tr data-tipo="electronico" data-nombre="Calculadora Científica" data-color="Gris">
+          <td class="codigo">ELE-007</td>
+          <td class="nombre">Calculadora Científica</td>
+          <td><span class="badge tipo-electronico">Electrónico</span></td>
+          <td>Gris</td>
+          <td class="cantidad">3</td>
+          <td>Piezas</td>
+          <td>Vitrina E1</td>
+          <td><span class="badge estado-agotado">Agotado</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 7 -->
+        <tr data-tipo="material" data-nombre="Cemento Gris Portland" data-color="Gris">
+          <td class="codigo">MAT-034</td>
+          <td class="nombre">Cemento Gris Portland</td>
+          <td><span class="badge tipo-material">Material</span></td>
+          <td>Gris</td>
+          <td class="cantidad">50</td>
+          <td>Sacos</td>
+          <td>Bodega B3</td>
+          <td><span class="badge estado-disponible">Disponible</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 8 -->
+        <tr data-tipo="herramienta" data-nombre="Llave Inglesa 12 pulgadas" data-color="Plateado">
+          <td class="codigo">HER-045</td>
+          <td class="nombre">Llave Inglesa 12 pulgadas</td>
+          <td><span class="badge tipo-herramienta">Herramienta</span></td>
+          <td>Plateado</td>
+          <td class="cantidad">18</td>
+          <td>Piezas</td>
+          <td>Estante A7</td>
+          <td><span class="badge estado-disponible">Disponible</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 9 -->
+        <tr data-tipo="mobiliario" data-nombre="Escritorio de Madera" data-color="Café">
+          <td class="codigo">MOB-021</td>
+          <td class="nombre">Escritorio de Madera</td>
+          <td><span class="badge tipo-mobiliario">Mobiliario</span></td>
+          <td>Café</td>
+          <td class="cantidad">6</td>
+          <td>Piezas</td>
+          <td>Almacén D2</td>
+          <td><span class="badge estado-bajo">Stock Bajo</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 10 -->
+        <tr data-tipo="electronico" data-nombre="Mouse Inalámbrico" data-color="Negro">
+          <td class="codigo">ELE-015</td>
+          <td class="nombre">Mouse Inalámbrico</td>
+          <td><span class="badge tipo-electronico">Electrónico</span></td>
+          <td>Negro</td>
+          <td class="cantidad">28</td>
+          <td>Piezas</td>
+          <td>Vitrina E3</td>
+          <td><span class="badge estado-disponible">Disponible</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 11 -->
+        <tr data-tipo="material" data-nombre="Alambre Galvanizado" data-color="Plateado">
+          <td class="codigo">MAT-056</td>
+          <td class="nombre">Alambre Galvanizado</td>
+          <td><span class="badge tipo-material">Material</span></td>
+          <td>Plateado</td>
+          <td class="cantidad">22</td>
+          <td>Rollos</td>
+          <td>Bodega B2</td>
+          <td><span class="badge estado-disponible">Disponible</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Producto 12 -->
+        <tr data-tipo="equipo" data-nombre="Sierra Circular" data-color="Rojo">
+          <td class="codigo">EQU-009</td>
+          <td class="nombre">Sierra Circular</td>
+          <td><span class="badge tipo-equipo">Equipo</span></td>
+          <td>Rojo</td>
+          <td class="cantidad">10</td>
+          <td>Piezas</td>
+          <td>Estante C4</td>
+          <td><span class="badge estado-disponible">Disponible</span></td>
+          <td class="acciones">
+            <button class="btn-icon" title="Ver detalles">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon btn-danger" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mensaje si no hay resultados -->
+  <div id="sinResultados" class="sin-resultados" style="display: none;">
+    <i class="fa-solid fa-box-open"></i>
+    <p>No se encontraron productos con los filtros seleccionados</p>
+  </div>
+
+</div>
+
+<script>
+// Filtrado en tiempo real
+const filtroTipo = document.getElementById('filtroTipo');
+const filtroNombre = document.getElementById('filtroNombre');
+const filtroColor = document.getElementById('filtroColor');
+const tablaBody = document.getElementById('tablaBody');
+const contadorResultados = document.getElementById('contadorResultados');
+const totalProductos = document.getElementById('totalProductos');
+const sinResultados = document.getElementById('sinResultados');
+
+// Total de productos
+const totalFilas = tablaBody.querySelectorAll('tr').length;
+totalProductos.textContent = totalFilas;
+
+function filtrarTabla() {
+  const tipo = filtroTipo.value.toLowerCase();
+  const nombre = filtroNombre.value.toLowerCase();
+  const color = filtroColor.value.toLowerCase();
+  
+  const filas = tablaBody.querySelectorAll('tr');
+  let contador = 0;
+  
+  filas.forEach(fila => {
+    const dataTipo = fila.getAttribute('data-tipo').toLowerCase();
+    const dataNombre = fila.getAttribute('data-nombre').toLowerCase();
+    const dataColor = fila.getAttribute('data-color').toLowerCase();
+    
+    const cumpleTipo = tipo === '' || dataTipo === tipo;
+    const cumpleNombre = nombre === '' || dataNombre.includes(nombre);
+    const cumpleColor = color === '' || dataColor.includes(color);
+    
+    if (cumpleTipo && cumpleNombre && cumpleColor) {
+      fila.style.display = '';
+      contador++;
+    } else {
+      fila.style.display = 'none';
+    }
+  });
+  
+  contadorResultados.textContent = contador;
+  
+  // Mostrar mensaje si no hay resultados
+  if (contador === 0) {
+    sinResultados.style.display = 'flex';
+    document.querySelector('.tabla-container').style.display = 'none';
+  } else {
+    sinResultados.style.display = 'none';
+    document.querySelector('.tabla-container').style.display = 'block';
+  }
+}
+
+// Eventos de filtrado en tiempo real
+filtroTipo.addEventListener('change', filtrarTabla);
+filtroNombre.addEventListener('input', filtrarTabla);
+filtroColor.addEventListener('input', filtrarTabla);
+
+function limpiarFiltros() {
+  filtroTipo.value = '';
+  filtroNombre.value = '';
+  filtroColor.value = '';
+  filtrarTabla();
+}
+</script>
+
+{% endblock %}

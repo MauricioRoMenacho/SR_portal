@@ -7,6 +7,9 @@ def inicio(request):
 def almacenes(request):
     return render(request, 'almacenes.html')
 
+def InventrioAG(request):
+    return render(request, 'almacenes/almgeneral/InventarioAG.html')
+
 def perfil(request):
     return render(request, 'perfil.html')
 
