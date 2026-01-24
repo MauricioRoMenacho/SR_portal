@@ -10,6 +10,9 @@ def almacenes(request):
 def InventrioAG(request):
     return render(request, 'almacenes/almgeneral/InventarioAG.html')
 
+def agregar(request):
+    return render(request, 'almacenes/almgeneral/agregar.html')
+
 def perfil(request):
     return render(request, 'perfil.html')
 
