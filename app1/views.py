@@ -6,8 +6,9 @@ from django.contrib.auth import logout
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
+from django.db import models
 import json
-from .models import ProductoAlmacen, Unidad
+from .models import ProductoAlmacen, Unidad,MovimientoInventario
 
 def inicio(request):
     return render(request, 'home.html')
@@ -60,7 +61,8 @@ def crear_unidad(request):
         
         unidad = Unidad.objects.create(
             nombre=nombre,
-            abreviatura=abreviatura
+            abreviatura=abreviatura,
+            activo=True  # AGREGA ESTO
         )
         
         return JsonResponse({
@@ -111,7 +113,6 @@ def agregar_producto(request):
         'unidades': unidades
     }
     return render(request, 'almacenes/almgeneral/agregar_producto.html', context)
-# views.py
 def importar_excel(request):
     if request.method == 'POST' and request.FILES.get('archivo_excel'):
         try:
@@ -129,6 +130,8 @@ def importar_excel(request):
                 return redirect('importar_excel')
             
             productos_creados = 0
+            productos_actualizados = 0
+            unidades_creadas = 0
             errores = []
             
             # Mapeo de códigos de almacén a ubicación
@@ -148,6 +151,12 @@ def importar_excel(request):
                     
                     ubicacion = codigo_a_ubicacion[codigo_almacen]
                     
+                    # Validar código de producto
+                    codigo_producto = str(row['codigo_producto']).strip()
+                    if not codigo_producto or codigo_producto == 'nan':
+                        errores.append(f"Fila {index+2}: El código de producto es obligatorio")
+                        continue
+                    
                     # Validar nombre
                     nombre = str(row['nombre']).strip()
                     if not nombre or nombre == 'nan':
@@ -164,11 +173,26 @@ def importar_excel(request):
                         errores.append(f"Fila {index+2}: Cantidad inválida")
                         continue
                     
-                    # Validar unidad
-                    unidad = str(row['unidad']).strip()
-                    if not unidad or unidad == 'nan':
+                    # PROCESAR UNIDAD DE MEDIDA
+                    unidad_str = str(row['unidad']).strip()
+                    if not unidad_str or unidad_str == 'NAN':
                         errores.append(f"Fila {index+2}: La unidad es obligatoria")
                         continue
+                    
+                    # Buscar o crear la unidad (auto-crear si no existe)
+                    unidad_obj = Unidad.objects.filter(
+                        models.Q(nombre__iexact=unidad_str) |
+                        models.Q(abreviatura__iexact=unidad_str)
+                    ).first()
+                    
+                    if not unidad_obj:
+                        # Crear nueva unidad automáticamente
+                        unidad_obj = Unidad.objects.create(
+                            nombre=unidad_str,
+                            abreviatura=unidad_str[:10] if len(unidad_str) <= 10 else '',
+                            activo=True
+                        )
+                        unidades_creadas += 1
                     
                     # Validar estado
                     estado = str(row['estado']).upper().strip()
@@ -189,32 +213,98 @@ def importar_excel(request):
                     if observaciones == 'nan':
                         observaciones = ''
                     
-                    # Crear producto
-                    ProductoAlmacen.objects.create(
-                        nombre=nombre,
-                        descripcion=descripcion,
-                        ubicacion_almacen=ubicacion,
-                        estante=estante if estante else None,
-                        cantidad=cantidad,
-                        unidad=unidad,
-                        estado=estado,
-                        observaciones=observaciones if observaciones else None
-                    )
-                    productos_creados += 1
+                    # BUSCAR SI EL PRODUCTO YA EXISTE
+                    producto_existente = ProductoAlmacen.objects.filter(codigo_producto=codigo_producto).first()
+                    
+                    if producto_existente:
+                        # ACTUALIZAR producto existente
+                        cantidad_anterior = producto_existente.cantidad
+                        estante_anterior = producto_existente.estante
+                        
+                        # Sumar la cantidad
+                        producto_existente.cantidad += cantidad
+                        
+                        # Actualizar estante si cambió
+                        if estante and estante != producto_existente.estante:
+                            producto_existente.estante = estante
+                        
+                        # Actualizar unidad si cambió
+                        if producto_existente.unidad != unidad_obj:
+                            producto_existente.unidad = unidad_obj
+                        
+                        # Actualizar otros campos
+                        producto_existente.estado = estado
+                        if observaciones:
+                            if producto_existente.observaciones:
+                                producto_existente.observaciones += f"\n[{pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}] {observaciones}"
+                            else:
+                                producto_existente.observaciones = observaciones
+                        
+                        producto_existente.save()
+                        
+                        # Registrar el movimiento en el historial
+                        MovimientoInventario.objects.create(
+                            producto=producto_existente,
+                            tipo_movimiento='ENTRADA',
+                            cantidad=cantidad,
+                            cantidad_anterior=cantidad_anterior,
+                            cantidad_nueva=producto_existente.cantidad,
+                            estante_anterior=estante_anterior,
+                            estante_nuevo=producto_existente.estante,
+                            observacion=f"Importación Excel: {observaciones}" if observaciones else "Importación Excel",
+                            usuario=request.user.username if request.user.is_authenticated else 'Sistema'
+                        )
+                        
+                        productos_actualizados += 1
+                        
+                    else:
+                        # CREAR nuevo producto
+                        nuevo_producto = ProductoAlmacen.objects.create(
+                            codigo_producto=codigo_producto,
+                            nombre=nombre,
+                            descripcion=descripcion,
+                            ubicacion_almacen=ubicacion,
+                            estante=estante if estante else None,
+                            cantidad=cantidad,
+                            unidad=unidad_obj,
+                            estado=estado,
+                            observaciones=observaciones if observaciones else None
+                        )
+                        
+                        # Registrar el movimiento inicial
+                        MovimientoInventario.objects.create(
+                            producto=nuevo_producto,
+                            tipo_movimiento='ENTRADA',
+                            cantidad=cantidad,
+                            cantidad_anterior=0,
+                            cantidad_nueva=cantidad,
+                            estante_anterior=None,
+                            estante_nuevo=estante if estante else None,
+                            observacion=f"Creación inicial: {observaciones}" if observaciones else "Creación inicial",
+                            usuario=request.user.username if request.user.is_authenticated else 'Sistema'
+                        )
+                        
+                        productos_creados += 1
                     
                 except Exception as e:
                     errores.append(f"Fila {index+2}: {str(e)}")
             
             # Mensajes de resultado
             if productos_creados > 0:
-                messages.success(request, f'✅ Se importaron {productos_creados} productos correctamente')
+                messages.success(request, f'✅ Se crearon {productos_creados} productos nuevos')
+            
+            if productos_actualizados > 0:
+                messages.success(request, f'✅ Se actualizaron {productos_actualizados} productos existentes')
+            
+            if unidades_creadas > 0:
+                messages.info(request, f'ℹ️ Se crearon {unidades_creadas} nuevas unidades de medida')
             
             if errores:
                 messages.warning(request, f'⚠️ Se encontraron {len(errores)} errores')
-                for error in errores[:10]:  # Mostrar solo los primeros 10 errores
+                for error in errores[:10]:
                     messages.error(request, error)
             
-            if productos_creados > 0:
+            if productos_creados > 0 or productos_actualizados > 0:
                 return redirect('InventarioAG')
             else:
                 return redirect('importar_excel')
@@ -223,7 +313,12 @@ def importar_excel(request):
             messages.error(request, f'❌ Error al procesar el archivo: {str(e)}')
             return redirect('importar_excel')
     
-    return render(request, 'almacenes/importar_excel.html')
+    # GET: Mostrar formulario con unidades disponibles
+    unidades_disponibles = Unidad.objects.filter(activo=True).order_by('nombre')
+    
+    return render(request, 'almacenes/importar_excel.html', {
+        'unidades_disponibles': unidades_disponibles
+    })
 def descargar_plantilla(request):
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
