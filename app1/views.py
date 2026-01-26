@@ -1,7 +1,10 @@
 from django.shortcuts import render, redirect
+import pandas as pd
+import openpyxl
+from openpyxl.styles import PatternFill, Font, Alignment
 from django.contrib.auth import logout
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 import json
 from .models import ProductoAlmacen, Unidad
@@ -108,3 +111,190 @@ def agregar_producto(request):
         'unidades': unidades
     }
     return render(request, 'almacenes/almgeneral/agregar_producto.html', context)
+# views.py
+def importar_excel(request):
+    if request.method == 'POST' and request.FILES.get('archivo_excel'):
+        try:
+            archivo = request.FILES['archivo_excel']
+            
+            # Leer el Excel
+            df = pd.read_excel(archivo)
+            
+            # Validar columnas OBLIGATORIAS
+            columnas_requeridas = ['codigo_almacen', 'codigo_producto', 'nombre', 'cantidad', 'unidad', 'estado']
+            columnas_faltantes = [col for col in columnas_requeridas if col not in df.columns]
+            
+            if columnas_faltantes:
+                messages.error(request, f'Faltan columnas obligatorias: {", ".join(columnas_faltantes)}')
+                return redirect('importar_excel')
+            
+            productos_creados = 0
+            errores = []
+            
+            # Mapeo de códigos de almacén a ubicación
+            codigo_a_ubicacion = {
+                '01': 'AG',
+                '02': 'AD',
+                '03': 'IU',
+            }
+            
+            for index, row in df.iterrows():
+                try:
+                    # Validar código de almacén
+                    codigo_almacen = str(row['codigo_almacen']).strip()
+                    if codigo_almacen not in codigo_a_ubicacion:
+                        errores.append(f"Fila {index+2}: Código de almacén '{codigo_almacen}' no válido (debe ser 01, 02 o 03)")
+                        continue
+                    
+                    ubicacion = codigo_a_ubicacion[codigo_almacen]
+                    
+                    # Validar nombre
+                    nombre = str(row['nombre']).strip()
+                    if not nombre or nombre == 'nan':
+                        errores.append(f"Fila {index+2}: El nombre es obligatorio")
+                        continue
+                    
+                    # Validar cantidad
+                    try:
+                        cantidad = int(row['cantidad'])
+                        if cantidad < 0:
+                            errores.append(f"Fila {index+2}: La cantidad no puede ser negativa")
+                            continue
+                    except:
+                        errores.append(f"Fila {index+2}: Cantidad inválida")
+                        continue
+                    
+                    # Validar unidad
+                    unidad = str(row['unidad']).strip()
+                    if not unidad or unidad == 'nan':
+                        errores.append(f"Fila {index+2}: La unidad es obligatoria")
+                        continue
+                    
+                    # Validar estado
+                    estado = str(row['estado']).upper().strip()
+                    if estado not in ['DISP', 'AGOT', 'BAJO']:
+                        errores.append(f"Fila {index+2}: Estado '{estado}' no válido (debe ser DISP, AGOT o BAJO)")
+                        continue
+                    
+                    # Campos opcionales
+                    descripcion = str(row.get('descripcion', '')).strip()
+                    if descripcion == 'nan':
+                        descripcion = ''
+                    
+                    estante = str(row.get('estante', '')).strip()
+                    if estante == 'nan':
+                        estante = ''
+                    
+                    observaciones = str(row.get('observaciones', '')).strip()
+                    if observaciones == 'nan':
+                        observaciones = ''
+                    
+                    # Crear producto
+                    ProductoAlmacen.objects.create(
+                        nombre=nombre,
+                        descripcion=descripcion,
+                        ubicacion_almacen=ubicacion,
+                        estante=estante if estante else None,
+                        cantidad=cantidad,
+                        unidad=unidad,
+                        estado=estado,
+                        observaciones=observaciones if observaciones else None
+                    )
+                    productos_creados += 1
+                    
+                except Exception as e:
+                    errores.append(f"Fila {index+2}: {str(e)}")
+            
+            # Mensajes de resultado
+            if productos_creados > 0:
+                messages.success(request, f'✅ Se importaron {productos_creados} productos correctamente')
+            
+            if errores:
+                messages.warning(request, f'⚠️ Se encontraron {len(errores)} errores')
+                for error in errores[:10]:  # Mostrar solo los primeros 10 errores
+                    messages.error(request, error)
+            
+            if productos_creados > 0:
+                return redirect('InventarioAG')
+            else:
+                return redirect('importar_excel')
+            
+        except Exception as e:
+            messages.error(request, f'❌ Error al procesar el archivo: {str(e)}')
+            return redirect('importar_excel')
+    
+    return render(request, 'almacenes/importar_excel.html')
+def descargar_plantilla(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from django.http import HttpResponse
+    
+    # Crear workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Plantilla Productos"
+    
+    # Headers - ORDEN CORRECTO
+    headers = ['codigo_almacen', 'codigo_producto', 'nombre', 'descripcion', 'cantidad', 'unidad', 'estado', 'estante', 'observaciones']
+    
+    # Estilo de headers
+    header_fill = PatternFill(start_color="148129", end_color="148129", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True, size=11)
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = border
+    
+    # Fila de ayuda (comentarios)
+    ayudas = [
+        '01, 02 o 03',
+        'Ej: PRD-001',
+        'Obligatorio',
+        'Opcional',
+        'Obligatorio (número)',
+        'Ej: Unidad, Caja, Kg',
+        'DISP, AGOT o BAJO',
+        'Opcional (Ej: A1, B2)',
+        'Opcional'
+    ]
+    
+    for col, ayuda in enumerate(ayudas, 1):
+        cell = ws.cell(row=2, column=col, value=ayuda)
+        cell.font = Font(color="666666", italic=True, size=9)
+        cell.alignment = Alignment(horizontal="center")
+    
+    # Datos de ejemplo
+    ejemplos = [
+        ['01', 'PRD-001', 'Balón de Fútbol', 'Balón profesional N°5', 50, 'Unidad', 'DISP', 'A1', 'Stock nuevo'],
+        ['01', 'PRD-002', 'Papel Bond A4', 'Paquete de 500 hojas', 100, 'Paquete', 'DISP', 'B2', ''],
+        ['02', 'PRD-003', 'Raqueta Tenis', '', 15, 'Unidad', 'BAJO', 'C1', 'Reabastecer'],
+        ['03', 'PRD-004', 'Marcadores', 'Caja de 12 permanentes', 30, 'Caja', 'DISP', '', ''],
+    ]
+    
+    for row_idx, ejemplo in enumerate(ejemplos, 3):
+        for col_idx, value in enumerate(ejemplo, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.border = border
+            if col_idx in [1, 2, 7]:  # Códigos y estado
+                cell.font = Font(bold=True)
+    
+    # Ajustar anchos
+    anchos = [15, 15, 20, 30, 12, 12, 12, 12, 30]
+    for idx, ancho in enumerate(anchos, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(idx)].width = ancho
+    
+    # Respuesta
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=plantilla_productos.xlsx'
+    wb.save(response)
+    
+    return response

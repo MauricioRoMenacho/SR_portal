@@ -1,0 +1,256 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Importar Excel - Sistema{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/ImportarExcel.css' %}">
+
+<div class="importar-container">
+  
+  <!-- Header -->
+  <div class="importar-header">
+    <h1>
+      <i class="fa-solid fa-file-excel"></i>
+      Importar Productos desde Excel
+    </h1>
+  </div>
+
+  <!-- Instrucciones -->
+  <div class="card-instrucciones">
+    <h3>
+      <i class="fa-solid fa-circle-info"></i>
+      Instrucciones
+    </h3>
+    <ul>
+      <li><strong>Columnas OBLIGATORIAS:</strong> codigo_almacen, codigo_producto, nombre, cantidad, unidad, estado</li>
+      <li><strong>Códigos de almacén válidos:</strong> 01 (Almacén General), 02 (Almacén Deporte), 03 (Almacén Útiles)</li>
+      <li><strong>Códigos de producto:</strong> Identificador único del producto (ej: PRD-001, PRD-002, etc.)</li>
+      <li><strong>Estados válidos:</strong> DISP, AGOT, BAJO</li>
+      <li><strong>Unidades:</strong> Unidad, Paquete, Caja, Kg, etc.</li>
+    </ul>
+  </div>
+
+  <!-- Formulario -->
+  <div class="card-formulario">
+    <form method="POST" enctype="multipart/form-data" id="formImportar">
+      {% csrf_token %}
+      
+      <div class="file-upload-area">
+        <label>
+          <i class="fa-solid fa-upload"></i>
+          Selecciona el archivo Excel
+        </label>
+        <div class="file-input-wrapper">
+          <input 
+            type="file" 
+            name="archivo_excel" 
+            id="archivoExcel"
+            accept=".xlsx,.xls" 
+            required
+          >
+          <i class="fa-solid fa-cloud-arrow-up file-upload-icon"></i>
+          <span class="file-upload-text">Arrastra tu archivo o haz clic para seleccionar</span>
+          <span class="file-upload-hint">Formatos: .xlsx, .xls</span>
+        </div>
+        <div class="file-name-display" id="fileNameDisplay">
+          <i class="fa-solid fa-file-excel"></i>
+          <span id="fileName"></span>
+        </div>
+      </div>
+
+      <div class="botones-container">
+        <button type="button" class="btn-primary" id="btnPrevisualizar" disabled>
+          <i class="fa-solid fa-eye"></i>
+          Previsualizar Datos
+        </button>
+        
+        <button type="submit" class="btn-primary" id="btnImportar" style="display: none;">
+          <i class="fa-solid fa-check"></i>
+          Confirmar Importación
+        </button>
+        
+        <a href="{% url 'InventarioAG' %}" class="btn-secondary">
+          <i class="fa-solid fa-arrow-left"></i>
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Vista Previa -->
+  <div class="preview-container" id="previewContainer">
+    <div class="preview-header">
+      <h3>
+        <i class="fa-solid fa-table"></i>
+        Vista Previa de Datos
+      </h3>
+    </div>
+    <div class="preview-info">
+      <i class="fa-solid fa-circle-check"></i>
+      Se encontraron <strong><span id="totalRegistros">0</span> registros</strong> para importar
+    </div>
+    <div class="tabla-preview-container">
+      <table class="tabla-preview">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+            <th>Unidad</th>
+            <th>Ubicación</th>
+            <th>Estado</th>
+            <th>Fecha Ingreso</th>
+          </tr>
+        </thead>
+        <tbody id="previewTableBody">
+          <!-- Datos dinámicos -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Consejo -->
+  <div class="card-consejo">
+    <i class="fa-solid fa-lightbulb" style="color: #856404; font-size: 20px;"></i>
+    <div>
+      <strong>💡 Consejo:</strong> Descarga la <a href="{% url 'descargar_plantilla' %}">plantilla de ejemplo</a> para asegurarte de que tu archivo tenga el formato correcto.
+    </div>
+  </div>
+
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-content">
+    <div class="spinner"></div>
+    <p style="color: #148129; font-weight: 600; font-size: 16px;">Procesando archivo...</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const archivoInput = document.getElementById('archivoExcel');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+const fileName = document.getElementById('fileName');
+const btnPrevisualizar = document.getElementById('btnPrevisualizar');
+const btnImportar = document.getElementById('btnImportar');
+const previewContainer = document.getElementById('previewContainer');
+const previewTableBody = document.getElementById('previewTableBody');
+const totalRegistros = document.getElementById('totalRegistros');
+const loadingOverlay = document.getElementById('loadingOverlay');
+
+let datosExcel = [];
+
+// Mostrar nombre del archivo
+archivoInput.addEventListener('change', function(e) {
+  if (e.target.files.length > 0) {
+    const file = e.target.files[0];
+    fileName.textContent = file.name;
+    fileNameDisplay.classList.add('show');
+    btnPrevisualizar.disabled = false;
+  } else {
+    fileNameDisplay.classList.remove('show');
+    btnPrevisualizar.disabled = true;
+  }
+});
+
+// Previsualizar datos
+btnPrevisualizar.addEventListener('click', function() {
+  const file = archivoInput.files[0];
+  if (!file) {
+    alert('Por favor selecciona un archivo');
+    return;
+  }
+
+  loadingOverlay.classList.add('show');
+  
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+      
+      // Validar columnas obligatorias
+      if (jsonData.length > 0) {
+        const primeraFila = jsonData[0];
+        const columnasRequeridas = ['codigo_almacen', 'codigo_producto', 'nombre', 'cantidad', 'unidad', 'estado'];
+        const columnasFaltantes = columnasRequeridas.filter(col => !(col in primeraFila));
+        
+        if (columnasFaltantes.length > 0) {
+          loadingOverlay.classList.remove('show');
+          alert('❌ Faltan columnas obligatorias: ' + columnasFaltantes.join(', '));
+          return;
+        }
+      }
+      
+      datosExcel = jsonData;
+      mostrarPreview(jsonData);
+      
+      loadingOverlay.classList.remove('show');
+      previewContainer.classList.add('show');
+      btnPrevisualizar.style.display = 'none';
+      btnImportar.style.display = 'flex';
+      
+      // Scroll a la preview
+      previewContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
+    } catch (error) {
+      loadingOverlay.classList.remove('show');
+      alert('Error al leer el archivo: ' + error.message);
+    }
+  };
+  
+  reader.readAsArrayBuffer(file);
+});
+
+function mostrarPreview(datos) {
+  totalRegistros.textContent = datos.length;
+  previewTableBody.innerHTML = '';
+  
+  const ubicacionesLabels = {
+    '01': 'Almacén General',
+    '02': 'Almacén Deporte',
+    '03': 'Almacén Útiles'
+  };
+  
+  const estadosLabels = {
+    'DISP': 'Disponible',
+    'BAJO': 'Stock Bajo',
+    'AGOT': 'Agotado'
+  };
+  
+  const fechaHoy = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  
+  datos.forEach((row, index) => {
+    const codigoAlmacen = String(row.codigo_almacen || '').padStart(2, '0');
+    const codigoProducto = row.codigo_producto || '';
+    const estado = (row.estado || 'DISP').toUpperCase();
+    const descripcion = row.descripcion || '-';
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${codigoAlmacen}-${codigoProducto}</strong></td>
+      <td>${row.nombre || ''}</td>
+      <td style="color: #666;">${descripcion}</td>
+      <td><strong>${row.cantidad || 0}</strong></td>
+      <td>${row.unidad || ''}</td>
+      <td><span class="badge-preview badge-${codigoAlmacen}">${ubicacionesLabels[codigoAlmacen] || 'Desconocido'}</span></td>
+      <td><span class="badge-preview badge-${estado.toLowerCase()}">${estadosLabels[estado] || estado}</span></td>
+      <td>${fechaHoy}</td>
+    `;
+    previewTableBody.appendChild(tr);
+  });
+}
+
+// Loading al enviar
+document.getElementById('formImportar').addEventListener('submit', function() {
+  loadingOverlay.classList.add('show');
+});
+</script>
+
+{% endblock %}

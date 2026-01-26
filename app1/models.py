@@ -19,7 +19,7 @@ class ProductoAlmacen(models.Model):
     UBICACION_CHOICES = [
         ('AG', 'Almacén General'),
         ('AD', 'Almacén de Deporte'),
-        ('ID', 'Imprenta Deportes'),
+        ('IU', 'Almacén de Útiles'),  
     ]
 
     ESTADO_CHOICES = [
@@ -29,25 +29,39 @@ class ProductoAlmacen(models.Model):
     ]
 
     id_producto = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=100)  # ← NUEVO CAMPO
+    codigo_almacen = models.CharField(max_length=2, editable=False)  # 01, 02, 03 - AUTO
+    nombre = models.CharField(max_length=100)
     descripcion = models.CharField(max_length=255)
     ubicacion_almacen = models.CharField(
         max_length=2,
         choices=UBICACION_CHOICES
     )
-    estante = models.CharField(max_length=50)
-    cantidad = models.PositiveIntegerField()
+    estante = models.CharField(max_length=50, blank=True, null=True)  # Opcional
+    cantidad = models.PositiveIntegerField(default=0)
     unidad = models.CharField(max_length=50)
     estado = models.CharField(
         max_length=4,
-        choices=ESTADO_CHOICES
+        choices=ESTADO_CHOICES,
+        default='DISP'
     )
     fecha_ingreso = models.DateField(auto_now_add=True)
     ultima_actualizacion = models.DateTimeField(auto_now=True)
     observaciones = models.TextField(blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        # Asignar código automáticamente según ubicación
+        if not self.codigo_almacen:
+            codigos = {
+                'AG': '01',  # Almacén General
+                'AD': '02',  # Almacén de Deporte
+                'IU': '03',  # Almacén de Útiles
+            }
+            self.codigo_almacen = codigos.get(self.ubicacion_almacen, '00')
+        
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.nombre} - {self.descripcion} ({self.cantidad} {self.unidad})"
+        return f"{self.codigo_almacen}-{self.nombre} ({self.cantidad} {self.unidad})"
     
     class Meta:
         db_table = 'app1_productoalmacen'
