@@ -116,7 +116,6 @@ class MovimientoInventario(models.Model):
         ordering = ['-fecha_movimiento']
 
 
-
 class PedidoCompra(models.Model):
     ESTADO_CHOICES = [
         ('PEND', 'Pendiente'),
@@ -127,15 +126,53 @@ class PedidoCompra(models.Model):
     id_pedido = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True, null=True)
+    archivo = models.FileField(upload_to='pedidos_compra/', null=False, blank=False)
     estado = models.CharField(max_length=4, choices=ESTADO_CHOICES, default='PEND')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
     
+    # Documento de entrega (cuando estado = ENTR)
+    documento_entrega = models.FileField(upload_to='documentos_entrega/', null=True, blank=True)
+    fecha_entrega = models.DateTimeField(null=True, blank=True)
+    
     def __str__(self):
         return f"PC-{self.id_pedido:04d} - {self.nombre}"
+    
+    def total_cotizaciones(self):
+        return self.cotizaciones.count()
+    
+    def cotizacion_seleccionada(self):
+        return self.cotizaciones.filter(estado='SELEC').first()
     
     class Meta:
         db_table = 'pedidos_compra'
         verbose_name = 'Pedido de Compra'
         verbose_name_plural = 'Pedidos de Compra'
+        ordering = ['-fecha_creacion']
+
+
+class Cotizacion(models.Model):
+    ESTADO_CHOICES = [
+        ('PEND', 'Pendiente'),
+        ('SELEC', 'Seleccionada'),
+        ('RECH', 'Rechazada'),
+    ]
+    
+    id_cotizacion = models.AutoField(primary_key=True)
+    pedido = models.ForeignKey(PedidoCompra, on_delete=models.CASCADE, related_name='cotizaciones')
+    proveedor = models.CharField(max_length=200)
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
+    descripcion = models.TextField(blank=True, null=True)
+    documento = models.FileField(upload_to='cotizaciones/', null=False, blank=False)
+    estado = models.CharField(max_length=5, choices=ESTADO_CHOICES, default='PEND')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"COT-{self.id_cotizacion:04d} - {self.proveedor} - ${self.monto}"
+    
+    class Meta:
+        db_table = 'cotizaciones'
+        verbose_name = 'Cotización'
+        verbose_name_plural = 'Cotizaciones'
         ordering = ['-fecha_creacion']

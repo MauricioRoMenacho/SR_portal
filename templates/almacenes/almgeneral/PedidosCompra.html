@@ -8,6 +8,21 @@
 
 <div class="pedidos-container">
   
+  <!-- Mensajes de feedback -->
+  {% if messages %}
+  <div class="messages-container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      <i class="fa-solid {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+      {{ message }}
+      <button class="btn-close-alert" onclick="this.parentElement.remove()">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <!-- Header -->
   <div class="pedidos-header">
     <h1>
@@ -93,6 +108,7 @@
           <th>Código</th>
           <th>Nombre</th>
           <th>Descripción</th>
+          <th>Archivo</th>
           <th>Estado</th>
           <th>Fecha Creación</th>
           <th>Última Modificación</th>
@@ -112,6 +128,16 @@
           </td>
           <td class="nombre">{{ pedido.nombre }}</td>
           <td class="descripcion">{{ pedido.descripcion|truncatewords:8 }}</td>
+          <td class="archivo-cell">
+            {% if pedido.archivo %}
+            <a href="{{ pedido.archivo.url }}" target="_blank" class="archivo-link" title="Descargar archivo">
+              <i class="fa-solid fa-file-{% if pedido.archivo.name|slice:'-3:' == 'pdf' %}pdf{% else %}word{% endif %}"></i>
+              {{ pedido.archivo.name|slice:"-20:" }}
+            </a>
+            {% else %}
+            <span class="sin-archivo">Sin archivo</span>
+            {% endif %}
+          </td>
           <td>
             {% if pedido.estado == 'PEND' %}
               <span class="badge estado-pendiente">
@@ -162,7 +188,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="7" style="text-align: center; padding: 3rem; color: #666;">
+          <td colspan="8" style="text-align: center; padding: 3rem; color: #666;">
             <i class="fa-solid fa-inbox" style="font-size: 48px; margin-bottom: 1rem; display: block; color: #ccc;"></i>
             No hay pedidos de compra registrados
           </td>
@@ -198,7 +224,7 @@
       </button>
     </div>
     
-    <form method="POST" action="#">
+    <form method="POST" action="{% url 'PedidosCompra' %}" enctype="multipart/form-data" id="formNuevoPedido">
       {% csrf_token %}
       
       <div class="modal-body">
@@ -211,6 +237,7 @@
           <input 
             type="text" 
             name="nombre" 
+            id="nombrePedido"
             class="form-input" 
             placeholder="Ej: Equipamiento Deportivo 2025"
             required
@@ -230,6 +257,31 @@
           ></textarea>
         </div>
 
+        <div class="form-group">
+          <label>
+            <i class="fa-solid fa-file-upload"></i>
+            Archivo del Pedido (PDF o Word) *
+          </label>
+          <div class="file-upload-wrapper">
+            <input 
+              type="file" 
+              name="archivo" 
+              id="archivoInput"
+              class="file-input" 
+              accept=".pdf,.doc,.docx"
+              required
+            >
+            <label for="archivoInput" class="file-label">
+              <i class="fa-solid fa-cloud-upload-alt"></i>
+              <span id="fileNameDisplay">Seleccionar archivo PDF o Word</span>
+            </label>
+          </div>
+          <small class="file-hint">
+            <i class="fa-solid fa-info-circle"></i>
+            Formatos permitidos: PDF, DOC, DOCX (Máx. 10MB)
+          </small>
+        </div>
+
       </div>
 
       <div class="modal-footer">
@@ -237,7 +289,7 @@
           <i class="fa-solid fa-times"></i>
           Cancelar
         </button>
-        <button type="submit" class="btn-primary">
+        <button type="submit" class="btn-primary" id="btnSubmit">
           <i class="fa-solid fa-save"></i>
           Crear Pedido
         </button>
@@ -321,6 +373,8 @@ function abrirModalNuevoPedido() {
 function cerrarModalNuevoPedido() {
   document.getElementById('modalNuevoPedido').classList.remove('show');
   document.body.style.overflow = 'auto';
+  document.getElementById('formNuevoPedido').reset();
+  document.getElementById('fileNameDisplay').textContent = 'Seleccionar archivo PDF o Word';
 }
 
 // Cerrar modal al hacer clic fuera
@@ -328,6 +382,64 @@ document.getElementById('modalNuevoPedido').addEventListener('click', function(e
   if (e.target === this) {
     cerrarModalNuevoPedido();
   }
+});
+
+// ========== MANEJO DE ARCHIVO ==========
+const archivoInput = document.getElementById('archivoInput');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+archivoInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  
+  if (file) {
+    // Validar tamaño (10MB = 10 * 1024 * 1024 bytes)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('El archivo es demasiado grande. Máximo 10MB permitido.');
+      archivoInput.value = '';
+      fileNameDisplay.textContent = 'Seleccionar archivo PDF o Word';
+      return;
+    }
+    
+    // Validar extensión
+    const extension = file.name.split('.').pop().toLowerCase();
+    const tiposPermitidos = ['pdf', 'doc', 'docx'];
+    
+    if (!tiposPermitidos.includes(extension)) {
+      alert('Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.');
+      archivoInput.value = '';
+      fileNameDisplay.textContent = 'Seleccionar archivo PDF o Word';
+      return;
+    }
+    
+    // Mostrar nombre del archivo
+    fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-${extension === 'pdf' ? 'pdf' : 'word'}"></i> ${file.name}`;
+  } else {
+    fileNameDisplay.textContent = 'Seleccionar archivo PDF o Word';
+  }
+});
+
+// Validación del formulario antes de enviar
+document.getElementById('formNuevoPedido').addEventListener('submit', function(e) {
+  const nombre = document.getElementById('nombrePedido').value.trim();
+  const archivo = document.getElementById('archivoInput').files[0];
+  
+  if (!nombre) {
+    e.preventDefault();
+    alert('El nombre del pedido es obligatorio');
+    return false;
+  }
+  
+  if (!archivo) {
+    e.preventDefault();
+    alert('Debes seleccionar un archivo PDF o Word');
+    return false;
+  }
+  
+  // Mostrar indicador de carga
+  const btnSubmit = document.getElementById('btnSubmit');
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando pedido...';
 });
 
 // ========== ACCIONES ==========
@@ -349,6 +461,22 @@ function eliminarPedido(id, nombre) {
     window.location.href = `/eliminar-pedido-compra/${id}/`;
   }
 }
+setTimeout(() => {
+  const alerts = document.querySelectorAll('.alert');
+  alerts.forEach(alert => {
+    alert.style.animation = 'slideOut 0.3s forwards';
+    setTimeout(() => alert.remove(), 300);
+  });
+}, 5000);
 </script>
+
+<style>
+@keyframes slideOut {
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+</style>
 
 {% endblock %}

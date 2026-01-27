@@ -1,0 +1,241 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Detalle Pedido - {{ pedido.nombre }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/PedidosCompra.css' %}">
+
+<div class="pedidos-container">
+  
+  <!-- Header -->
+  <div class="pedidos-header">
+    <h1>
+      <i class="fa-solid fa-file-alt"></i>
+      Detalle del Pedido
+    </h1>
+    <button class="btn-secondary" onclick="window.location.href='{% url 'PedidosCompra' %}'">
+      <i class="fa-solid fa-arrow-left"></i>
+      Volver
+    </button>
+  </div>
+
+  <!-- Información del Pedido -->
+  <div class="detalle-card">
+    <div class="detalle-header">
+      <div>
+        <h2>PC-{{ pedido.id_pedido|stringformat:"04d" }}</h2>
+        <p class="pedido-nombre">{{ pedido.nombre }}</p>
+      </div>
+      <div>
+        {% if pedido.estado == 'PEND' %}
+          <span class="badge estado-pendiente">
+            <i class="fa-solid fa-clock"></i>
+            Pendiente
+          </span>
+        {% elif pedido.estado == 'COMP' %}
+          <span class="badge estado-completado">
+            <i class="fa-solid fa-check"></i>
+            Completado
+          </span>
+        {% elif pedido.estado == 'ENTR' %}
+          <span class="badge estado-entregado">
+            <i class="fa-solid fa-box-open"></i>
+            Entregado
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="detalle-body">
+      <div class="info-grid">
+        
+        <div class="info-item">
+          <label><i class="fa-solid fa-align-left"></i> Descripción</label>
+          <p>{{ pedido.descripcion|default:"Sin descripción" }}</p>
+        </div>
+
+        <div class="info-item">
+          <label><i class="fa-solid fa-file-pdf"></i> Documento del Pedido</label>
+          <a href="{{ pedido.archivo.url }}" target="_blank" class="archivo-download">
+            <i class="fa-solid fa-download"></i>
+            Descargar documento
+          </a>
+        </div>
+
+        <div class="info-item">
+          <label><i class="fa-solid fa-calendar-plus"></i> Fecha de Creación</label>
+          <p>{{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</p>
+        </div>
+
+        <div class="info-item">
+          <label><i class="fa-solid fa-calendar-check"></i> Última Modificación</label>
+          <p>{{ pedido.fecha_modificacion|date:"d/m/Y H:i" }}</p>
+        </div>
+
+        <div class="info-item">
+          <label><i class="fa-solid fa-list"></i> Total de Cotizaciones</label>
+          <p><strong>{{ pedido.total_cotizaciones }}</strong> cotización{{ pedido.total_cotizaciones|pluralize:"es" }}</p>
+        </div>
+
+        {% if pedido.cotizacion_seleccionada %}
+        <div class="info-item">
+          <label><i class="fa-solid fa-star"></i> Cotización Seleccionada</label>
+          <p><strong>{{ pedido.cotizacion_seleccionada.proveedor }}</strong> - ${{ pedido.cotizacion_seleccionada.monto }}</p>
+        </div>
+        {% endif %}
+
+        {% if pedido.estado == 'ENTR' and pedido.documento_entrega %}
+        <div class="info-item">
+          <label><i class="fa-solid fa-truck"></i> Documento de Entrega</label>
+          <a href="{{ pedido.documento_entrega.url }}" target="_blank" class="archivo-download">
+            <i class="fa-solid fa-download"></i>
+            Descargar documento de entrega
+          </a>
+        </div>
+
+        <div class="info-item">
+          <label><i class="fa-solid fa-calendar-check"></i> Fecha de Entrega</label>
+          <p>{{ pedido.fecha_entrega|date:"d/m/Y H:i" }}</p>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="detalle-footer">
+      <button class="btn-primary" onclick="window.location.href='{% url 'CotizacionesPedido' pedido.id_pedido %}'">
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+        Ver Cotizaciones ({{ pedido.total_cotizaciones }})
+      </button>
+      
+      {% if pedido.estado == 'PEND' %}
+      <button class="btn-warning" onclick="window.location.href='{% url 'EditarPedido' pedido.id_pedido %}'">
+        <i class="fa-solid fa-edit"></i>
+        Editar Pedido
+      </button>
+      {% endif %}
+
+      {% if pedido.estado == 'COMP' %}
+      <button class="btn-success" onclick="window.location.href='{% url 'MarcarEntregado' pedido.id_pedido %}'">
+        <i class="fa-solid fa-truck"></i>
+        Marcar como Entregado
+      </button>
+      {% endif %}
+    </div>
+
+  </div>
+
+</div>
+
+<style>
+.detalle-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.detalle-header {
+  background: linear-gradient(135deg, #148129 0%, #0d5a1d 100%);
+  color: white;
+  padding: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detalle-header h2 {
+  font-size: 24px;
+  margin: 0 0 8px 0;
+  font-weight: 700;
+}
+
+.pedido-nombre {
+  font-size: 18px;
+  margin: 0;
+  opacity: 0.95;
+}
+
+.detalle-body {
+  padding: 30px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.info-item label {
+  display: block;
+  font-weight: 600;
+  color: #148129;
+  margin-bottom: 8px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-item p {
+  color: #333;
+  font-size: 15px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.archivo-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f1f8f4;
+  border-radius: 8px;
+  color: #148129;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.archivo-download:hover {
+  background: #148129;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(20, 129, 41, 0.3);
+}
+
+.detalle-footer {
+  padding: 24px 30px;
+  background: #f8f9fa;
+  border-top: 2px solid #e0e0e0;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .detalle-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detalle-footer {
+    flex-direction: column;
+  }
+
+  .detalle-footer button {
+    width: 100%;
+  }
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Eliminar Pedido - {{ pedido.nombre }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/PedidosCompra.css' %}">
+
+<div class="pedidos-container">
+  
+  <!-- Header -->
+  <div class="pedidos-header">
+    <h1>
+      <i class="fa-solid fa-trash-alt"></i>
+      Eliminar Pedido
+    </h1>
+    <button class="btn-secondary" onclick="window.location.href='{% url 'PedidosCompra' %}'">
+      <i class="fa-solid fa-arrow-left"></i>
+      Volver
+    </button>
+  </div>
+
+  <!-- Card de Confirmación -->
+  <div class="confirm-card">
+    <div class="confirm-icon">
+      <i class="fa-solid fa-exclamation-triangle"></i>
+    </div>
+    
+    <div class="confirm-content">
+      <h2>¿Estás seguro de eliminar este pedido?</h2>
+      <p>Esta acción no se puede deshacer. Se eliminará toda la información relacionada.</p>
+      
+      <div class="pedido-info">
+        <div class="info-row">
+          <strong>Código:</strong>
+          <span>PC-{{ pedido.id_pedido|stringformat:"04d" }}</span>
+        </div>
+        <div class="info-row">
+          <strong>Nombre:</strong>
+          <span>{{ pedido.nombre }}</span>
+        </div>
+        <div class="info-row">
+          <strong>Estado:</strong>
+          <span>
+            {% if pedido.estado == 'PEND' %}Pendiente
+            {% elif pedido.estado == 'COMP' %}Completado
+            {% elif pedido.estado == 'ENTR' %}Entregado
+            {% endif %}
+          </span>
+        </div>
+        <div class="info-row">
+          <strong>Cotizaciones:</strong>
+          <span>{{ pedido.total_cotizaciones }}</span>
+        </div>
+      </div>
+
+      {% if pedido.total_cotizaciones > 0 %}
+      <div class="warning-box">
+        <i class="fa-solid fa-info-circle"></i>
+        <span>Al eliminar este pedido también se eliminarán todas sus cotizaciones asociadas.</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="confirm-actions">
+        <button type="button" class="btn-secondary" onclick="window.location.href='{% url 'PedidosCompra' %}'">
+          <i class="fa-solid fa-times"></i>
+          Cancelar
+        </button>
+        <button type="submit" class="btn-danger">
+          <i class="fa-solid fa-trash"></i>
+          Sí, Eliminar Pedido
+        </button>
+      </div>
+    </form>
+
+  </div>
+
+</div>
+
+<style>
+.confirm-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.confirm-icon {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  padding: 40px;
+  text-align: center;
+}
+
+.confirm-icon i {
+  font-size: 64px;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.confirm-content {
+  padding: 30px;
+}
+
+.confirm-content h2 {
+  color: #dc3545;
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.confirm-content > p {
+  color: #666;
+  margin: 0 0 24px 0;
+  font-size: 15px;
+}
+
+.pedido-info {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.info-row span {
+  color: #666;
+}
+
+.warning-box {
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #856404;
+  font-size: 14px;
+}
+
+.warning-box i {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.confirm-actions {
+  padding: 24px 30px;
+  background: #f8f9fa;
+  border-top: 2px solid #e0e0e0;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-danger {
+  padding: 12px 24px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+@media (max-width: 768px) {
+  .confirm-actions {
+    flex-direction: column;
+  }
+
+  .confirm-actions button {
+    width: 100%;
+  }
+}
+</style>
+
+{% endblock %}

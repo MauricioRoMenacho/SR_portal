@@ -1,0 +1,764 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Cotizaciones - {{ pedido.nombre }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/PedidosCompra.css' %}">
+
+<div class="pedidos-container">
+  
+  <!-- Mensajes -->
+  {% if messages %}
+  <div class="messages-container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      <i class="fa-solid {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% endif %}"></i>
+      {{ message }}
+      <button class="btn-close-alert" onclick="this.parentElement.remove()">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Header -->
+  <div class="pedidos-header">
+    <div>
+      <h1>
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+        Cotizaciones del Pedido
+      </h1>
+      <p class="subtitle">PC-{{ pedido.id_pedido|stringformat:"04d" }} - {{ pedido.nombre }}</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      {% if pedido.estado == 'PEND' %}
+      <button class="btn-primary" onclick="window.location.href='{% url 'AgregarCotizacion' pedido.id_pedido %}'">
+        <i class="fa-solid fa-plus"></i>
+        Nueva Cotización
+      </button>
+      {% endif %}
+      <button class="btn-secondary" onclick="window.location.href='{% url 'DetallePedido' pedido.id_pedido %}'">
+        <i class="fa-solid fa-arrow-left"></i>
+        Volver
+      </button>
+    </div>
+  </div>
+
+  <!-- Info del Pedido -->
+  <div class="info-banner">
+    <div class="info-item">
+      <i class="fa-solid fa-info-circle"></i>
+      <div>
+        <strong>Estado del Pedido</strong>
+        <span>
+          {% if pedido.estado == 'PEND' %}
+            <span class="badge estado-pendiente">Pendiente</span>
+          {% elif pedido.estado == 'COMP' %}
+            <span class="badge estado-completado">Completado</span>
+          {% elif pedido.estado == 'ENTR' %}
+            <span class="badge estado-entregado">Entregado</span>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+    <div class="info-item">
+      <i class="fa-solid fa-list"></i>
+      <div>
+        <strong>Total de Cotizaciones</strong>
+        <span>{{ total_cotizaciones }}</span>
+      </div>
+    </div>
+    {% if pedido.estado == 'COMP' %}
+    <div class="info-item">
+      <i class="fa-solid fa-truck"></i>
+      <div>
+        <strong>Acción Disponible</strong>
+        <button class="btn-success btn-sm" onclick="window.location.href='{% url 'MarcarEntregado' pedido.id_pedido %}'">
+          <i class="fa-solid fa-check"></i>
+          Marcar como Entregado
+        </button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Tabla de Cotizaciones -->
+  {% if cotizaciones %}
+  <div class="tabla-container">
+    <table class="tabla-pedidos">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Proveedor</th>
+          <th>Monto</th>
+          <th>Descripción</th>
+          <th>Documento</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cotizacion in cotizaciones %}
+        <tr>
+          <td class="codigo">
+            <strong>COT-{{ cotizacion.id_cotizacion|stringformat:"04d" }}</strong>
+          </td>
+          <td class="nombre">{{ cotizacion.proveedor }}</td>
+          <td>
+            <strong style="color: #148129; font-size: 16px;">${{ cotizacion.monto }}</strong>
+          </td>
+          <td class="descripcion">{{ cotizacion.descripcion|truncatewords:8|default:"Sin descripción" }}</td>
+          <td class="archivo-cell">
+            <button class="archivo-link" onclick="abrirVistaPrevia({{ cotizacion.id_cotizacion }}, '{{ cotizacion.proveedor }}', '{{ cotizacion.documento.name }}')" title="Ver documento">
+              <i class="fa-solid fa-file-{% if cotizacion.documento.name|slice:'-3:' == 'pdf' %}pdf{% elif cotizacion.documento.name|slice:'-3:' == 'doc' or cotizacion.documento.name|slice:'-4:' == 'docx' %}word{% else %}lines{% endif %}"></i>
+              Ver documento
+            </button>
+          </td>
+          <td>
+            {% if cotizacion.estado == 'PEND' %}
+              <span class="badge badge-warning">
+                <i class="fa-solid fa-clock"></i>
+                Pendiente
+              </span>
+            {% elif cotizacion.estado == 'SELEC' %}
+              <span class="badge badge-success">
+                <i class="fa-solid fa-star"></i>
+                Seleccionada
+              </span>
+            {% elif cotizacion.estado == 'RECH' %}
+              <span class="badge badge-danger">
+                <i class="fa-solid fa-times"></i>
+                Rechazada
+              </span>
+            {% endif %}
+          </td>
+          <td>{{ cotizacion.fecha_creacion|date:"d/m/Y" }}</td>
+          <td class="acciones">
+            {% if pedido.estado == 'PEND' and cotizacion.estado == 'PEND' %}
+            <button class="btn-icon btn-success" 
+                    title="Seleccionar esta cotización"
+                    onclick="if(confirm('¿Seleccionar esta cotización? El pedido se marcará como COMPLETADO.')) window.location.href='{% url 'SeleccionarCotizacion' cotizacion.id_cotizacion %}'">
+              <i class="fa-solid fa-check"></i>
+            </button>
+            {% elif cotizacion.estado == 'SELEC' %}
+            <span class="badge badge-success" style="padding: 8px 12px;">
+              <i class="fa-solid fa-trophy"></i>
+              Ganadora
+            </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <!-- Sin cotizaciones -->
+  <div class="empty-state">
+    <i class="fa-solid fa-inbox"></i>
+    <h3>No hay cotizaciones registradas</h3>
+    <p>Agrega cotizaciones para comparar opciones de proveedores</p>
+    {% if pedido.estado == 'PEND' %}
+    <button class="btn-primary" onclick="window.location.href='{% url 'AgregarCotizacion' pedido.id_pedido %}'">
+      <i class="fa-solid fa-plus"></i>
+      Agregar Primera Cotización
+    </button>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Modal para Vista Previa de Documentos -->
+<div id="modalVistaPrevia" class="modal-visor">
+  <div class="modal-visor-content">
+    <div class="modal-visor-header">
+      <h3 id="modalTitulo">
+        <i class="fa-solid fa-file-pdf"></i>
+        Vista Previa del Documento
+      </h3>
+      <button class="btn-cerrar-modal" onclick="cerrarVistaPrevia()">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-visor-body">
+      <div id="cargandoDoc" class="loading-documento">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <p>Cargando documento...</p>
+      </div>
+      
+      <!-- Visor de PDF -->
+      <iframe id="visorPDF" frameborder="0" style="display: none;"></iframe>
+      
+      <!-- Mensaje para documentos Word -->
+      <div id="vistaWord" class="vista-word" style="display: none;">
+        <div class="word-info-card">
+          <i class="fa-solid fa-file-word word-icon"></i>
+          <h4>Documento de Word</h4>
+          <p class="proveedor-name" id="proveedorNombre"></p>
+          <p class="file-info">Los documentos Word no pueden visualizarse directamente en el navegador.</p>
+          <div class="word-actions">
+            <button class="btn-primary btn-large" onclick="descargarDocumento()">
+              <i class="fa-solid fa-download"></i>
+              Descargar Documento
+            </button>
+            <p class="download-hint">Se descargará automáticamente y podrás abrirlo en Microsoft Word o LibreOffice</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-visor-footer">
+      <button class="btn-secondary" onclick="cerrarVistaPrevia()">
+        <i class="fa-solid fa-times"></i>
+        Cerrar
+      </button>
+      <a id="btnDescargar" href="" download class="btn-primary">
+        <i class="fa-solid fa-download"></i>
+        Descargar
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto-cerrar mensajes
+setTimeout(() => {
+  const alerts = document.querySelectorAll('.alert');
+  alerts.forEach(alert => {
+    alert.style.animation = 'slideOut 0.3s forwards';
+    setTimeout(() => alert.remove(), 300);
+  });
+}, 5000);
+
+// Variable global para el archivo actual
+let archivoActual = '';
+
+// Función para abrir vista previa SIN USAR SERVICIOS EXTERNOS
+function abrirVistaPrevia(cotizacionId, proveedor, fileName) {
+  const modal = document.getElementById('modalVistaPrevia');
+  const visorPDF = document.getElementById('visorPDF');
+  const vistaWord = document.getElementById('vistaWord');
+  const titulo = document.getElementById('modalTitulo');
+  const btnDescargar = document.getElementById('btnDescargar');
+  const cargando = document.getElementById('cargandoDoc');
+  const proveedorNombre = document.getElementById('proveedorNombre');
+  
+  // Resetear estados
+  cargando.style.display = 'flex';
+  visorPDF.style.display = 'none';
+  vistaWord.style.display = 'none';
+  
+  // Detectar tipo de archivo
+  const extension = fileName.split('.').pop().toLowerCase();
+  
+  // Determinar icono según el tipo de archivo
+  let iconClass = 'fa-file-lines';
+  if (extension === 'pdf') {
+    iconClass = 'fa-file-pdf';
+  } else if (extension === 'doc' || extension === 'docx') {
+    iconClass = 'fa-file-word';
+  }
+  
+  // Actualizar título
+  titulo.innerHTML = `<i class="fa-solid ${iconClass}"></i> Cotización - ${proveedor}`;
+  
+  // Construir URL para ver el documento (USANDO TU SERVIDOR, NO MICROSOFT)
+  const viewerUrl = `/documento/${cotizacionId}/`;
+  archivoActual = viewerUrl;
+  
+  // Configurar botón de descarga
+  btnDescargar.href = viewerUrl;
+  btnDescargar.download = fileName;
+  
+  // Configurar visualización según tipo de archivo
+  if (extension === 'pdf') {
+    // ✅ Para PDFs: cargar directamente en iframe (SIN SERVICIOS EXTERNOS)
+    visorPDF.src = viewerUrl + '#toolbar=1&navpanes=1&scrollbar=1&view=FitH';
+    
+    visorPDF.onload = function() {
+      cargando.style.display = 'none';
+      visorPDF.style.display = 'block';
+    };
+    
+    // Fallback para PDFs
+    setTimeout(() => {
+      if (cargando.style.display !== 'none') {
+        cargando.style.display = 'none';
+        visorPDF.style.display = 'block';
+      }
+    }, 2000);
+    
+  } else if (extension === 'doc' || extension === 'docx') {
+    // ✅ Para documentos Word: mostrar tarjeta bonita con opción de descarga
+    proveedorNombre.textContent = `Proveedor: ${proveedor}`;
+    
+    setTimeout(() => {
+      cargando.style.display = 'none';
+      vistaWord.style.display = 'flex';
+    }, 500);
+  } else {
+    // Para otros tipos: intentar mostrar en iframe
+    visorPDF.src = viewerUrl;
+    
+    setTimeout(() => {
+      cargando.style.display = 'none';
+      visorPDF.style.display = 'block';
+    }, 2000);
+  }
+  
+  // Mostrar modal
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function descargarDocumento() {
+  if (archivoActual) {
+    // Crear un enlace temporal para forzar la descarga
+    const link = document.createElement('a');
+    link.href = archivoActual;
+    link.download = ''; // Esto fuerza la descarga
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Cerrar el modal después de iniciar la descarga
+    setTimeout(() => {
+      cerrarVistaPrevia();
+    }, 500);
+  }
+}
+
+function cerrarVistaPrevia() {
+  const modal = document.getElementById('modalVistaPrevia');
+  const visorPDF = document.getElementById('visorPDF');
+  
+  // Ocultar modal
+  modal.style.display = 'none';
+  document.body.style.overflow = 'auto';
+  
+  // Limpiar iframe
+  visorPDF.src = '';
+  visorPDF.onload = null;
+  archivoActual = '';
+}
+
+// Cerrar modal al hacer clic fuera de él
+document.getElementById('modalVistaPrevia').addEventListener('click', function(e) {
+  if (e.target === this) {
+    cerrarVistaPrevia();
+  }
+});
+
+// Cerrar modal con tecla ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    cerrarVistaPrevia();
+  }
+});
+</script>
+
+<style>
+.subtitle {
+  color: #666;
+  font-size: 14px;
+  margin: 8px 0 0 0;
+}
+
+.info-banner {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid #e0e0e0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.info-banner .info-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.info-banner .info-item > i {
+  font-size: 32px;
+  color: #148129;
+  flex-shrink: 0;
+}
+
+.info-banner .info-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-banner .info-item strong {
+  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.info-banner .info-item span {
+  color: #666;
+  font-size: 15px;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.badge-warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.badge-success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge-danger {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.empty-state {
+  background: white;
+  border-radius: 16px;
+  padding: 60px 40px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.empty-state i {
+  font-size: 72px;
+  color: #ccc;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  color: #333;
+  margin: 0 0 12px 0;
+  font-size: 22px;
+}
+
+.empty-state p {
+  color: #666;
+  margin: 0 0 24px 0;
+  font-size: 15px;
+}
+
+/* Estilos para el botón de ver documento */
+.archivo-link {
+  background: transparent;
+  border: none;
+  color: #148129;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.archivo-link:hover {
+  background: #f0f7f0;
+  color: #0d5a1a;
+}
+
+.archivo-link i {
+  font-size: 16px;
+}
+
+/* Estilos del Modal de Vista Previa */
+.modal-visor {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-visor-content {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 1400px;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+.modal-visor-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 16px 16px 0 0;
+  flex-shrink: 0;
+}
+
+.modal-visor-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-visor-header h3 i {
+  color: #148129;
+  font-size: 20px;
+}
+
+.btn-cerrar-modal {
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 18px;
+}
+
+.btn-cerrar-modal:hover {
+  background: #e9ecef;
+  color: #333;
+}
+
+.modal-visor-body {
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
+  background: #525659;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-visor-body iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: white;
+}
+
+.loading-documento {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: #fff;
+  z-index: 10;
+}
+
+.loading-documento i {
+  font-size: 48px;
+  color: #148129;
+}
+
+.loading-documento p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Vista para documentos Word */
+.vista-word {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: 15;
+}
+
+.word-info-card {
+  background: white;
+  border-radius: 20px;
+  padding: 50px 40px;
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: slideUp 0.4s ease;
+}
+
+.word-icon {
+  font-size: 80px;
+  color: #2B579A;
+  margin-bottom: 20px;
+}
+
+.word-info-card h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.proveedor-name {
+  color: #148129;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+}
+
+.file-info {
+  color: #666;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 30px 0;
+}
+
+.word-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.btn-large {
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(20, 129, 41, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-large:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(20, 129, 41, 0.4);
+}
+
+.btn-large i {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.download-hint {
+  color: #999;
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.modal-visor-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #f8f9fa;
+  border-radius: 0 0 16px 16px;
+  flex-shrink: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .pedidos-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .pedidos-header > div:last-child {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .pedidos-header > div:last-child button {
+    width: 100%;
+  }
+
+  .info-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-visor-content {
+    height: 95vh;
+    max-width: 100%;
+    border-radius: 12px;
+  }
+
+  .modal-visor {
+    padding: 10px;
+  }
+
+  .modal-visor-footer {
+    flex-direction: column;
+  }
+
+  .modal-visor-footer button,
+  .modal-visor-footer a {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .word-info-card {
+    padding: 40px 30px;
+    max-width: 90%;
+  }
+  
+  .word-icon {
+    font-size: 60px;
+  }
+}
+</style>
+
+{% endblock %}

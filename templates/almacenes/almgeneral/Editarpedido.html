@@ -1,0 +1,252 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Editar Pedido - {{ pedido.nombre }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/PedidosCompra.css' %}">
+
+<div class="pedidos-container">
+  
+  <!-- Mensajes -->
+  {% if messages %}
+  <div class="messages-container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      <i class="fa-solid {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% endif %}"></i>
+      {{ message }}
+      <button class="btn-close-alert" onclick="this.parentElement.remove()">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Header -->
+  <div class="pedidos-header">
+    <h1>
+      <i class="fa-solid fa-edit"></i>
+      Editar Pedido
+    </h1>
+    <button class="btn-secondary" onclick="window.location.href='{% url 'PedidosCompra' %}'">
+      <i class="fa-solid fa-arrow-left"></i>
+      Volver
+    </button>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-card">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="form-section">
+        <h3><i class="fa-solid fa-info-circle"></i> Información del Pedido</h3>
+        
+        <div class="form-group">
+          <label>
+            <i class="fa-solid fa-tag"></i>
+            Nombre del Pedido *
+          </label>
+          <input 
+            type="text" 
+            name="nombre" 
+            class="form-input" 
+            value="{{ pedido.nombre }}"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label>
+            <i class="fa-solid fa-align-left"></i>
+            Descripción
+          </label>
+          <textarea 
+            name="descripcion" 
+            class="form-input" 
+            rows="4"
+          >{{ pedido.descripcion }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <i class="fa-solid fa-file-upload"></i>
+            Archivo del Pedido
+          </label>
+          
+          <!-- Archivo actual -->
+          <div class="archivo-actual">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>Archivo actual: {{ pedido.archivo.name|slice:"-40:" }}</span>
+            <a href="{{ pedido.archivo.url }}" target="_blank" class="btn-ver">
+              <i class="fa-solid fa-eye"></i>
+              Ver
+            </a>
+          </div>
+
+          <!-- Subir nuevo archivo (opcional) -->
+          <div class="file-upload-wrapper">
+            <input 
+              type="file" 
+              name="archivo" 
+              id="archivoInput"
+              class="file-input" 
+              accept=".pdf,.doc,.docx"
+            >
+            <label for="archivoInput" class="file-label">
+              <i class="fa-solid fa-cloud-upload-alt"></i>
+              <span id="fileNameDisplay">Subir nuevo archivo (opcional)</span>
+            </label>
+          </div>
+          <small class="file-hint">
+            <i class="fa-solid fa-info-circle"></i>
+            Si no subes un nuevo archivo, se mantendrá el actual
+          </small>
+        </div>
+
+      </div>
+
+      <div class="form-footer">
+        <button type="button" class="btn-secondary" onclick="window.location.href='{% url 'PedidosCompra' %}'">
+          <i class="fa-solid fa-times"></i>
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary">
+          <i class="fa-solid fa-save"></i>
+          Guardar Cambios
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+<script>
+// Manejo de archivo
+const archivoInput = document.getElementById('archivoInput');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+archivoInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  
+  if (file) {
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('El archivo es demasiado grande. Máximo 10MB permitido.');
+      archivoInput.value = '';
+      fileNameDisplay.textContent = 'Subir nuevo archivo (opcional)';
+      return;
+    }
+    
+    const extension = file.name.split('.').pop().toLowerCase();
+    const tiposPermitidos = ['pdf', 'doc', 'docx'];
+    
+    if (!tiposPermitidos.includes(extension)) {
+      alert('Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.');
+      archivoInput.value = '';
+      fileNameDisplay.textContent = 'Subir nuevo archivo (opcional)';
+      return;
+    }
+    
+    fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-${extension === 'pdf' ? 'pdf' : 'word'}"></i> ${file.name}`;
+  }
+});
+
+// Auto-cerrar mensajes
+setTimeout(() => {
+  const alerts = document.querySelectorAll('.alert');
+  alerts.forEach(alert => {
+    alert.style.animation = 'slideOut 0.3s forwards';
+    setTimeout(() => alert.remove(), 300);
+  });
+}, 5000);
+</script>
+
+<style>
+.form-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.form-section {
+  padding: 30px;
+}
+
+.form-section h3 {
+  color: #148129;
+  margin: 0 0 24px 0;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.archivo-actual {
+  background: #f1f8f4;
+  border: 2px solid #d4edda;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.archivo-actual i {
+  font-size: 24px;
+  color: #148129;
+}
+
+.archivo-actual span {
+  flex: 1;
+  color: #333;
+  font-weight: 500;
+}
+
+.btn-ver {
+  padding: 8px 16px;
+  background: #148129;
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+
+.btn-ver:hover {
+  background: #0d5a1d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(20, 129, 41, 0.3);
+}
+
+.form-footer {
+  padding: 24px 30px;
+  background: #f8f9fa;
+  border-top: 2px solid #e0e0e0;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .form-footer {
+    flex-direction: column;
+  }
+
+  .form-footer button {
+    width: 100%;
+  }
+}
+</style>
+
+{% endblock %}

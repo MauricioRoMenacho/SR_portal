@@ -8,7 +8,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.db import models
 import json
-from .models import ProductoAlmacen, Unidad,MovimientoInventario
+from .models import ProductoAlmacen, Unidad,MovimientoInventario, PedidoCompra
 
 def inicio(request):
     return render(request, 'home.html')
@@ -394,6 +394,297 @@ def descargar_plantilla(request):
     
     return response
 
-def PedidosCompra(request):
-    return render(request, 'almacenes/almgeneral/PedidosCompra.html')
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.utils import timezone
+from .models import PedidoCompra, Cotizacion
 
+# ========== VISTA PRINCIPAL: LISTA DE PEDIDOS ==========
+def PedidosCompra(request):
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        descripcion = request.POST.get('descripcion', '')
+        archivo = request.FILES.get('archivo')
+        
+        if not nombre:
+            messages.error(request, 'El nombre del pedido es obligatorio')
+            return redirect('PedidosCompra')
+        
+        if not archivo:
+            messages.error(request, 'Debes subir un archivo PDF o Word')
+            return redirect('PedidosCompra')
+        
+        extension = archivo.name.split('.')[-1].lower()
+        tipos_permitidos = ['pdf', 'doc', 'docx']
+        
+        if extension not in tipos_permitidos:
+            messages.error(request, 'Solo se permiten archivos PDF o Word (.pdf, .doc, .docx)')
+            return redirect('PedidosCompra')
+        
+        try:
+            pedido = PedidoCompra.objects.create(
+                nombre=nombre,
+                descripcion=descripcion,
+                archivo=archivo
+            )
+            messages.success(request, f'Pedido "{pedido.nombre}" creado exitosamente')
+            return redirect('PedidosCompra')
+        except Exception as e:
+            messages.error(request, f'Error al crear el pedido: {str(e)}')
+            return redirect('PedidosCompra')
+    
+    pedidos = PedidoCompra.objects.all()
+    context = {
+        'pedidos': pedidos,
+        'total_pedidos': pedidos.count()
+    }
+    return render(request, 'almacenes/almgeneral/PedidosCompra.html', context)
+
+# ========== VER DETALLES DEL PEDIDO ==========
+def DetallePedido(request, id_pedido):
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    context = {
+        'pedido': pedido,
+    }
+    return render(request, 'almacenes/almgeneral/DetallePedido.html', context)
+
+
+# ========== EDITAR PEDIDO ==========
+def EditarPedido(request, id_pedido):
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        descripcion = request.POST.get('descripcion', '')
+        archivo = request.FILES.get('archivo')
+        
+        if not nombre:
+            messages.error(request, 'El nombre del pedido es obligatorio')
+            return redirect('EditarPedido', id_pedido=id_pedido)
+        
+        pedido.nombre = nombre
+        pedido.descripcion = descripcion
+        
+        # Si se sube nuevo archivo, reemplazarlo
+        if archivo:
+            extension = archivo.name.split('.')[-1].lower()
+            tipos_permitidos = ['pdf', 'doc', 'docx']
+            
+            if extension not in tipos_permitidos:
+                messages.error(request, 'Solo se permiten archivos PDF o Word')
+                return redirect('EditarPedido', id_pedido=id_pedido)
+            
+            pedido.archivo = archivo
+        
+        try:
+            pedido.save()
+            messages.success(request, f'Pedido "{pedido.nombre}" actualizado exitosamente')
+            return redirect('PedidosCompra')
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el pedido: {str(e)}')
+            return redirect('EditarPedido', id_pedido=id_pedido)
+    
+    context = {
+        'pedido': pedido,
+    }
+    return render(request, 'almacenes/almgeneral/EditarPedido.html', context)
+
+
+# ========== ELIMINAR PEDIDO ==========
+def EliminarPedido(request, id_pedido):
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    
+    if request.method == 'POST':
+        nombre = pedido.nombre
+        try:
+            pedido.delete()
+            messages.success(request, f'Pedido "{nombre}" eliminado exitosamente')
+        except Exception as e:
+            messages.error(request, f'Error al eliminar el pedido: {str(e)}')
+        return redirect('PedidosCompra')
+    
+    context = {
+        'pedido': pedido,
+    }
+    return render(request, 'almacenes/almgeneral/EliminarPedido.html', context)
+
+
+# ========== VER COTIZACIONES DEL PEDIDO ==========
+def CotizacionesPedido(request, id_pedido):
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    cotizaciones = pedido.cotizaciones.all()
+    
+    context = {
+        'pedido': pedido,
+        'cotizaciones': cotizaciones,
+        'total_cotizaciones': cotizaciones.count()
+    }
+    return render(request, 'almacenes/almgeneral/CotizacionesPedido.html', context)
+
+
+# ========== AGREGAR COTIZACIÓN ==========
+def AgregarCotizacion(request, id_pedido):
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    
+    if request.method == 'POST':
+        proveedor = request.POST.get('proveedor')
+        monto = request.POST.get('monto')
+        descripcion = request.POST.get('descripcion', '')
+        documento = request.FILES.get('documento')
+        
+        if not proveedor:
+            messages.error(request, 'El nombre del proveedor es obligatorio')
+            return redirect('AgregarCotizacion', id_pedido=id_pedido)
+        
+        if not monto:
+            messages.error(request, 'El monto es obligatorio')
+            return redirect('AgregarCotizacion', id_pedido=id_pedido)
+        
+        if not documento:
+            messages.error(request, 'Debes subir el documento de cotización')
+            return redirect('AgregarCotizacion', id_pedido=id_pedido)
+        
+        extension = documento.name.split('.')[-1].lower()
+        tipos_permitidos = ['pdf', 'doc', 'docx']
+        
+        if extension not in tipos_permitidos:
+            messages.error(request, 'Solo se permiten archivos PDF o Word')
+            return redirect('AgregarCotizacion', id_pedido=id_pedido)
+        
+        try:
+            cotizacion = Cotizacion.objects.create(
+                pedido=pedido,
+                proveedor=proveedor,
+                monto=monto,
+                descripcion=descripcion,
+                documento=documento
+            )
+            messages.success(request, f'Cotización de "{proveedor}" agregada exitosamente')
+            return redirect('CotizacionesPedido', id_pedido=id_pedido)
+        except Exception as e:
+            messages.error(request, f'Error al agregar cotización: {str(e)}')
+            return redirect('AgregarCotizacion', id_pedido=id_pedido)
+    
+    context = {
+        'pedido': pedido,
+    }
+    return render(request, 'almacenes/almgeneral/AgregarCotizacion.html', context)
+
+
+# ========== SELECCIONAR COTIZACIÓN GANADORA ==========
+def SeleccionarCotizacion(request, id_cotizacion):
+    cotizacion = get_object_or_404(Cotizacion, id_cotizacion=id_cotizacion)
+    pedido = cotizacion.pedido
+    
+    if request.method == 'POST':
+        try:
+            # Marcar todas las otras cotizaciones como rechazadas
+            pedido.cotizaciones.exclude(id_cotizacion=id_cotizacion).update(estado='RECH')
+            
+            # Marcar esta cotización como seleccionada
+            cotizacion.estado = 'SELEC'
+            cotizacion.save()
+            
+            # Cambiar estado del pedido a COMPLETADO
+            pedido.estado = 'COMP'
+            pedido.save()
+            
+            messages.success(request, f'Cotización de "{cotizacion.proveedor}" seleccionada. Pedido marcado como COMPLETADO')
+            return redirect('CotizacionesPedido', id_pedido=pedido.id_pedido)
+        except Exception as e:
+            messages.error(request, f'Error al seleccionar cotización: {str(e)}')
+            return redirect('CotizacionesPedido', id_pedido=pedido.id_pedido)
+    
+    context = {
+        'cotizacion': cotizacion,
+        'pedido': pedido,
+    }
+    return render(request, 'almacenes/almgeneral/SeleccionarCotizacion.html', context)
+
+
+# ========== MARCAR COMO ENTREGADO ==========
+def MarcarEntregado(request, id_pedido):
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    
+    # Validar que el pedido esté en estado COMPLETADO
+    if pedido.estado != 'COMP':
+        messages.error(request, 'Solo puedes marcar como entregado pedidos que están COMPLETADOS')
+        return redirect('CotizacionesPedido', id_pedido=id_pedido)
+    
+    if request.method == 'POST':
+        documento = request.FILES.get('documento_entrega')
+        
+        if not documento:
+            messages.error(request, 'Debes subir el documento de entrega')
+            return redirect('MarcarEntregado', id_pedido=id_pedido)
+        
+        extension = documento.name.split('.')[-1].lower()
+        tipos_permitidos = ['pdf', 'doc', 'docx']
+        
+        if extension not in tipos_permitidos:
+            messages.error(request, 'Solo se permiten archivos PDF o Word')
+            return redirect('MarcarEntregado', id_pedido=id_pedido)
+        
+        try:
+            pedido.documento_entrega = documento
+            pedido.fecha_entrega = timezone.now()
+            pedido.estado = 'ENTR'
+            pedido.save()
+            
+            messages.success(request, f'Pedido "{pedido.nombre}" marcado como ENTREGADO')
+            return redirect('DetallePedido', id_pedido=id_pedido)
+        except Exception as e:
+            messages.error(request, f'Error al marcar como entregado: {str(e)}')
+            return redirect('MarcarEntregado', id_pedido=id_pedido)
+    
+    context = {
+        'pedido': pedido,
+    }
+    return render(request, 'almacenes/almgeneral/MarcarEntregado.html', context)
+
+import os
+import mimetypes
+from django.shortcuts import get_object_or_404
+from django.http import FileResponse, Http404
+from django.views.decorators.clickjacking import xframe_options_exempt
+from django.views.decorators.cache import cache_control
+
+@xframe_options_exempt
+@cache_control(max_age=3600, public=True)
+def ver_documento(request, cotizacion_id):
+    """Vista para servir documentos sin servicios externos"""
+    from .models import Cotizacion
+    
+    cotizacion = get_object_or_404(Cotizacion, id_cotizacion=cotizacion_id)
+    
+    if not cotizacion.documento:
+        raise Http404("Documento no encontrado")
+    
+    file_path = cotizacion.documento.path
+    
+    if not os.path.exists(file_path):
+        raise Http404("Archivo físico no encontrado")
+    
+    filename = os.path.basename(file_path)
+    extension = filename.split('.')[-1].lower()
+    
+    mime_types = {
+        'pdf': 'application/pdf',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    }
+    
+    content_type = mime_types.get(extension, 'application/octet-stream')
+    
+    try:
+        response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['Accept-Ranges'] = 'bytes'
+        
+        if extension == 'pdf':
+            response['Content-Type'] = 'application/pdf'
+        
+        return response
+    except Exception as e:
+        raise Http404(f"Error: {str(e)}")

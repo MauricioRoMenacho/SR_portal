@@ -1,0 +1,264 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Agregar Cotización - {{ pedido.nombre }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/PedidosCompra.css' %}">
+
+<div class="pedidos-container">
+  
+  <!-- Mensajes -->
+  {% if messages %}
+  <div class="messages-container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      <i class="fa-solid {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% endif %}"></i>
+      {{ message }}
+      <button class="btn-close-alert" onclick="this.parentElement.remove()">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Header -->
+  <div class="pedidos-header">
+    <h1>
+      <i class="fa-solid fa-plus-circle"></i>
+      Agregar Cotización
+    </h1>
+    <button class="btn-secondary" onclick="window.location.href='{% url 'CotizacionesPedido' pedido.id_pedido %}'">
+      <i class="fa-solid fa-arrow-left"></i>
+      Volver
+    </button>
+  </div>
+
+  <!-- Info del Pedido -->
+  <div class="info-card-small">
+    <i class="fa-solid fa-info-circle"></i>
+    <div>
+      <strong>Pedido:</strong>
+      <span>PC-{{ pedido.id_pedido|stringformat:"04d" }} - {{ pedido.nombre }}</span>
+    </div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-card">
+    <form method="POST" enctype="multipart/form-data" id="formCotizacion">
+      {% csrf_token %}
+
+      <div class="form-section">
+        <h3><i class="fa-solid fa-file-invoice"></i> Información de la Cotización</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>
+              <i class="fa-solid fa-building"></i>
+              Nombre del Proveedor *
+            </label>
+            <input 
+              type="text" 
+              name="proveedor" 
+              id="proveedorInput"
+              class="form-input" 
+              placeholder="Ej: Proveedora XYZ S.A.C."
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label>
+              <i class="fa-solid fa-dollar-sign"></i>
+              Monto *
+            </label>
+            <input 
+              type="number" 
+              name="monto" 
+              id="montoInput"
+              class="form-input" 
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <i class="fa-solid fa-align-left"></i>
+            Descripción
+          </label>
+          <textarea 
+            name="descripcion" 
+            class="form-input" 
+            rows="4"
+            placeholder="Describe los detalles de la cotización (opcional)..."
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <i class="fa-solid fa-file-upload"></i>
+            Documento de Cotización (PDF o Word) *
+          </label>
+          <div class="file-upload-wrapper">
+            <input 
+              type="file" 
+              name="documento" 
+              id="documentoInput"
+              class="file-input" 
+              accept=".pdf,.doc,.docx"
+              required
+            >
+            <label for="documentoInput" class="file-label">
+              <i class="fa-solid fa-cloud-upload-alt"></i>
+              <span id="fileNameDisplay">Seleccionar documento PDF o Word</span>
+            </label>
+          </div>
+          <small class="file-hint">
+            <i class="fa-solid fa-info-circle"></i>
+            Sube la cotización recibida del proveedor (PDF, DOC, DOCX - Máx. 10MB)
+          </small>
+        </div>
+
+      </div>
+
+      <div class="form-footer">
+        <button type="button" class="btn-secondary" onclick="window.location.href='{% url 'CotizacionesPedido' pedido.id_pedido %}'">
+          <i class="fa-solid fa-times"></i>
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary" id="btnSubmit">
+          <i class="fa-solid fa-save"></i>
+          Agregar Cotización
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+<script>
+// Manejo de archivo
+const documentoInput = document.getElementById('documentoInput');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+documentoInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  
+  if (file) {
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('El archivo es demasiado grande. Máximo 10MB permitido.');
+      documentoInput.value = '';
+      fileNameDisplay.textContent = 'Seleccionar documento PDF o Word';
+      return;
+    }
+    
+    const extension = file.name.split('.').pop().toLowerCase();
+    const tiposPermitidos = ['pdf', 'doc', 'docx'];
+    
+    if (!tiposPermitidos.includes(extension)) {
+      alert('Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.');
+      documentoInput.value = '';
+      fileNameDisplay.textContent = 'Seleccionar documento PDF o Word';
+      return;
+    }
+    
+    fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-${extension === 'pdf' ? 'pdf' : 'word'}"></i> ${file.name}`;
+  }
+});
+
+// Validación del formulario
+document.getElementById('formCotizacion').addEventListener('submit', function(e) {
+  const proveedor = document.getElementById('proveedorInput').value.trim();
+  const monto = document.getElementById('montoInput').value;
+  const documento = document.getElementById('documentoInput').files[0];
+  
+  if (!proveedor) {
+    e.preventDefault();
+    alert('El nombre del proveedor es obligatorio');
+    return false;
+  }
+  
+  if (!monto || parseFloat(monto) <= 0) {
+    e.preventDefault();
+    alert('El monto debe ser mayor a 0');
+    return false;
+  }
+  
+  if (!documento) {
+    e.preventDefault();
+    alert('Debes seleccionar el documento de cotización');
+    return false;
+  }
+  
+  // Mostrar indicador de carga
+  const btnSubmit = document.getElementById('btnSubmit');
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+});
+
+// Auto-cerrar mensajes
+setTimeout(() => {
+  const alerts = document.querySelectorAll('.alert');
+  alerts.forEach(alert => {
+    alert.style.animation = 'slideOut 0.3s forwards';
+    setTimeout(() => alert.remove(), 300);
+  });
+}, 5000);
+</script>
+
+<style>
+.info-card-small {
+  background: #f1f8f4;
+  border: 2px solid #d4edda;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.info-card-small i {
+  font-size: 24px;
+  color: #148129;
+}
+
+.info-card-small > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-card-small strong {
+  color: #148129;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.info-card-small span {
+  color: #333;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+{% endblock %}

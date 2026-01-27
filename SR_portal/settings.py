@@ -56,15 +56,15 @@ ROOT_URLCONF = 'SR_portal.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # ← AGREGA ESTA LÍNEA
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.debug',  # ← Agrega este también
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.static',  # ← Y este
+                'django.template.context_processors.static',
             ],
         },
     },
@@ -120,12 +120,47 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
 STATICFILES_DIRS = [
     BASE_DIR / 'css',
     BASE_DIR / 'imagenes',
 ]
 
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ========================================
+# CONFIGURACIÓN DE ARCHIVOS MEDIA
+# ========================================
+
+# Media files (Uploads de usuarios)
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Tamaño máximo de archivo (10MB)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB en bytes
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
+
+# Tipos de archivo permitidos
+ALLOWED_FILE_TYPES = ['pdf', 'doc', 'docx']
+
+# ========================================
+# CONFIGURACIÓN PARA VISUALIZACIÓN DE DOCUMENTOS
+# ========================================
+# Deshabilitar CORS para permitir iframe de documentos
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+
+# Configuración de seguridad de contenido
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# ========================================
+# CONFIGURACIÓN ADICIONAL PARA PRODUCCIÓN
+# ========================================
+# Cuando pases a producción, considera:
+# - Cambiar DEBUG = False
+# - Usar un servidor web como Nginx para servir archivos media
+# - Configurar CORS correctamente si necesitas acceso desde otros dominios
+# - Usar HTTPS para mayor seguridad
+# - Configurar X_FRAME_OPTIONS de manera más restrictiva si es necesario

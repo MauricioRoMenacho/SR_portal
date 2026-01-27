@@ -1,0 +1,275 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Seleccionar Cotización{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/PedidosCompra.css' %}">
+
+<div class="pedidos-container">
+  
+  <!-- Header -->
+  <div class="pedidos-header">
+    <h1>
+      <i class="fa-solid fa-star"></i>
+      Seleccionar Cotización Ganadora
+    </h1>
+    <button class="btn-secondary" onclick="window.location.href='{% url 'CotizacionesPedido' pedido.id_pedido %}'">
+      <i class="fa-solid fa-arrow-left"></i>
+      Volver
+    </button>
+  </div>
+
+  <!-- Card de Confirmación -->
+  <div class="confirm-card">
+    <div class="confirm-icon success">
+      <i class="fa-solid fa-check-circle"></i>
+    </div>
+    
+    <div class="confirm-content">
+      <h2>¿Seleccionar esta cotización como ganadora?</h2>
+      <p>Al confirmar, se realizarán las siguientes acciones:</p>
+      
+      <div class="action-list">
+        <div class="action-item">
+          <i class="fa-solid fa-check-circle"></i>
+          <span>Esta cotización se marcará como <strong>SELECCIONADA</strong></span>
+        </div>
+        <div class="action-item">
+          <i class="fa-solid fa-times-circle"></i>
+          <span>Las demás cotizaciones se marcarán como <strong>RECHAZADAS</strong></span>
+        </div>
+        <div class="action-item">
+          <i class="fa-solid fa-clipboard-check"></i>
+          <span>El pedido cambiará a estado <strong>COMPLETADO</strong></span>
+        </div>
+      </div>
+
+      <div class="cotizacion-info">
+        <h3><i class="fa-solid fa-file-invoice"></i> Datos de la Cotización</h3>
+        
+        <div class="info-grid-2">
+          <div class="info-row">
+            <strong>Código:</strong>
+            <span>COT-{{ cotizacion.id_cotizacion|stringformat:"04d" }}</span>
+          </div>
+          <div class="info-row">
+            <strong>Proveedor:</strong>
+            <span>{{ cotizacion.proveedor }}</span>
+          </div>
+          <div class="info-row">
+            <strong>Monto:</strong>
+            <span class="monto">${{ cotizacion.monto }}</span>
+          </div>
+          <div class="info-row">
+            <strong>Fecha:</strong>
+            <span>{{ cotizacion.fecha_creacion|date:"d/m/Y" }}</span>
+          </div>
+        </div>
+
+        {% if cotizacion.descripcion %}
+        <div class="descripcion-box">
+          <strong>Descripción:</strong>
+          <p>{{ cotizacion.descripcion }}</p>
+        </div>
+        {% endif %}
+
+        <a href="{{ cotizacion.documento.url }}" target="_blank" class="archivo-download">
+          <i class="fa-solid fa-file-pdf"></i>
+          Ver documento de cotización
+        </a>
+      </div>
+
+      <div class="pedido-info-small">
+        <i class="fa-solid fa-info-circle"></i>
+        <div>
+          <strong>Pedido:</strong>
+          <span>PC-{{ pedido.id_pedido|stringformat:"04d" }} - {{ pedido.nombre }}</span>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="confirm-actions">
+        <button type="button" class="btn-secondary" onclick="window.location.href='{% url 'CotizacionesPedido' pedido.id_pedido %}'">
+          <i class="fa-solid fa-times"></i>
+          Cancelar
+        </button>
+        <button type="submit" class="btn-success">
+          <i class="fa-solid fa-check"></i>
+          Sí, Seleccionar Esta Cotización
+        </button>
+      </div>
+    </form>
+
+  </div>
+
+</div>
+
+<style>
+.confirm-icon.success {
+  background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+}
+
+.action-list {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.action-item:last-child {
+  border-bottom: none;
+}
+
+.action-item i {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.action-item i.fa-check-circle {
+  color: #28a745;
+}
+
+.action-item i.fa-times-circle {
+  color: #dc3545;
+}
+
+.action-item i.fa-clipboard-check {
+  color: #17a2b8;
+}
+
+.action-item span {
+  color: #333;
+  font-size: 14px;
+}
+
+.cotizacion-info {
+  background: white;
+  border: 2px solid #148129;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+}
+
+.cotizacion-info h3 {
+  color: #148129;
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.descripcion-box {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.descripcion-box strong {
+  color: #148129;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.descripcion-box p {
+  color: #333;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.monto {
+  color: #148129;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pedido-info-small {
+  background: #f1f8f4;
+  border: 2px solid #d4edda;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.pedido-info-small i {
+  font-size: 24px;
+  color: #148129;
+}
+
+.pedido-info-small > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pedido-info-small strong {
+  color: #148129;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pedido-info-small span {
+  color: #333;
+  font-size: 14px;
+}
+
+.btn-success {
+  padding: 12px 24px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-success:hover {
+  background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+@media (max-width: 768px) {
+  .info-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .confirm-actions {
+    flex-direction: column;
+  }
+
+  .confirm-actions button {
+    width: 100%;
+  }
+}
+</style>
+
+{% endblock %}

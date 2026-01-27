@@ -1,0 +1,403 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Marcar como Entregado - {{ pedido.nombre }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/PedidosCompra.css' %}">
+
+<div class="pedidos-container">
+  
+  <!-- Mensajes -->
+  {% if messages %}
+  <div class="messages-container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      <i class="fa-solid {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% endif %}"></i>
+      {{ message }}
+      <button class="btn-close-alert" onclick="this.parentElement.remove()">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Header -->
+  <div class="pedidos-header">
+    <h1>
+      <i class="fa-solid fa-truck"></i>
+      Marcar Pedido como Entregado
+    </h1>
+    <button class="btn-secondary" onclick="window.location.href='{% url 'DetallePedido' pedido.id_pedido %}'">
+      <i class="fa-solid fa-arrow-left"></i>
+      Volver
+    </button>
+  </div>
+
+  <!-- Info del Pedido -->
+  <div class="entrega-info-card">
+    <div class="entrega-header">
+      <i class="fa-solid fa-box-open"></i>
+      <div>
+        <h2>PC-{{ pedido.id_pedido|stringformat:"04d" }} - {{ pedido.nombre }}</h2>
+        <p>Completa la información de entrega para finalizar el pedido</p>
+      </div>
+    </div>
+
+    <div class="entrega-resumen">
+      <div class="resumen-item">
+        <i class="fa-solid fa-check-circle"></i>
+        <div>
+          <strong>Estado Actual</strong>
+          <span class="badge estado-completado">Completado</span>
+        </div>
+      </div>
+
+      {% if pedido.cotizacion_seleccionada %}
+      <div class="resumen-item">
+        <i class="fa-solid fa-building"></i>
+        <div>
+          <strong>Proveedor Seleccionado</strong>
+          <span>{{ pedido.cotizacion_seleccionada.proveedor }}</span>
+        </div>
+      </div>
+
+      <div class="resumen-item">
+        <i class="fa-solid fa-dollar-sign"></i>
+        <div>
+          <strong>Monto</strong>
+          <span class="monto-grande">${{ pedido.cotizacion_seleccionada.monto }}</span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="form-card">
+    <form method="POST" enctype="multipart/form-data" id="formEntrega">
+      {% csrf_token %}
+
+      <div class="form-section">
+        <h3><i class="fa-solid fa-file-signature"></i> Documento de Entrega</h3>
+        
+        <div class="upload-info-box">
+          <i class="fa-solid fa-info-circle"></i>
+          <p>
+            Sube el documento que certifica la entrega del pedido (guía de remisión, comprobante de entrega, etc.)
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <i class="fa-solid fa-file-upload"></i>
+            Documento de Entrega (PDF o Word) *
+          </label>
+          <div class="file-upload-wrapper">
+            <input 
+              type="file" 
+              name="documento_entrega" 
+              id="documentoInput"
+              class="file-input" 
+              accept=".pdf,.doc,.docx"
+              required
+            >
+            <label for="documentoInput" class="file-label file-label-large">
+              <div class="upload-icon">
+                <i class="fa-solid fa-cloud-upload-alt"></i>
+              </div>
+              <div class="upload-text">
+                <strong id="fileNameDisplay">Seleccionar documento</strong>
+                <span>Arrastra y suelta o haz clic para seleccionar</span>
+              </div>
+            </label>
+          </div>
+          <small class="file-hint">
+            <i class="fa-solid fa-info-circle"></i>
+            Formatos permitidos: PDF, DOC, DOCX (Máx. 10MB)
+          </small>
+        </div>
+
+        <div class="warning-box success">
+          <i class="fa-solid fa-check-circle"></i>
+          <div>
+            <strong>Al confirmar:</strong>
+            <p>El pedido cambiará a estado <strong>ENTREGADO</strong> y se registrará la fecha de entrega</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="form-footer">
+        <button type="button" class="btn-secondary" onclick="window.location.href='{% url 'DetallePedido' pedido.id_pedido %}'">
+          <i class="fa-solid fa-times"></i>
+          Cancelar
+        </button>
+        <button type="submit" class="btn-success" id="btnSubmit">
+          <i class="fa-solid fa-check"></i>
+          Marcar como Entregado
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+
+<script>
+// Manejo de archivo con drag and drop
+const documentoInput = document.getElementById('documentoInput');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+const fileLabel = document.querySelector('.file-label-large');
+
+documentoInput.addEventListener('change', function(e) {
+  handleFile(e.target.files[0]);
+});
+
+// Drag and drop
+fileLabel.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  fileLabel.style.borderColor = '#148129';
+  fileLabel.style.background = '#f1f8f4';
+});
+
+fileLabel.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  fileLabel.style.borderColor = '#ddd';
+  fileLabel.style.background = '#f8f9fa';
+});
+
+fileLabel.addEventListener('drop', (e) => {
+  e.preventDefault();
+  fileLabel.style.borderColor = '#ddd';
+  fileLabel.style.background = '#f8f9fa';
+  
+  const file = e.dataTransfer.files[0];
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+  documentoInput.files = dataTransfer.files;
+  handleFile(file);
+});
+
+function handleFile(file) {
+  if (file) {
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('El archivo es demasiado grande. Máximo 10MB permitido.');
+      documentoInput.value = '';
+      fileNameDisplay.textContent = 'Seleccionar documento';
+      return;
+    }
+    
+    const extension = file.name.split('.').pop().toLowerCase();
+    const tiposPermitidos = ['pdf', 'doc', 'docx'];
+    
+    if (!tiposPermitidos.includes(extension)) {
+      alert('Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.');
+      documentoInput.value = '';
+      fileNameDisplay.textContent = 'Seleccionar documento';
+      return;
+    }
+    
+    fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-${extension === 'pdf' ? 'pdf' : 'word'}"></i> ${file.name}`;
+    fileLabel.style.borderColor = '#28a745';
+    fileLabel.style.background = '#d4edda';
+  }
+}
+
+// Validación del formulario
+document.getElementById('formEntrega').addEventListener('submit', function(e) {
+  const documento = document.getElementById('documentoInput').files[0];
+  
+  if (!documento) {
+    e.preventDefault();
+    alert('Debes seleccionar el documento de entrega');
+    return false;
+  }
+  
+  // Mostrar indicador de carga
+  const btnSubmit = document.getElementById('btnSubmit');
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+});
+
+// Auto-cerrar mensajes
+setTimeout(() => {
+  const alerts = document.querySelectorAll('.alert');
+  alerts.forEach(alert => {
+    alert.style.animation = 'slideOut 0.3s forwards';
+    setTimeout(() => alert.remove(), 300);
+  });
+}, 5000);
+</script>
+
+<style>
+.entrega-info-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+}
+
+.entrega-header {
+  background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+  color: white;
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.entrega-header i {
+  font-size: 48px;
+  opacity: 0.9;
+}
+
+.entrega-header h2 {
+  font-size: 22px;
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.entrega-header p {
+  margin: 0;
+  opacity: 0.95;
+  font-size: 14px;
+}
+
+.entrega-resumen {
+  padding: 24px 30px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+.resumen-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.resumen-item > i {
+  font-size: 32px;
+  color: #148129;
+  flex-shrink: 0;
+}
+
+.resumen-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resumen-item strong {
+  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resumen-item span {
+  color: #666;
+  font-size: 15px;
+}
+
+.monto-grande {
+  color: #148129;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.upload-info-box {
+  background: #e7f3ff;
+  border: 2px solid #b3d9ff;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.upload-info-box i {
+  font-size: 20px;
+  color: #0066cc;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.upload-info-box p {
+  margin: 0;
+  color: #004080;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.file-label-large {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  transition: all 0.3s;
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: #148129;
+}
+
+.upload-text {
+  text-align: center;
+}
+
+.upload-text strong {
+  display: block;
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.upload-text span {
+  display: block;
+  font-size: 13px;
+  color: #999;
+}
+
+.warning-box.success {
+  background: #d4edda;
+  border: 2px solid #28a745;
+}
+
+.warning-box.success i {
+  color: #155724;
+}
+
+.warning-box.success strong {
+  color: #155724;
+}
+
+.warning-box.success p {
+  color: #155724;
+}
+
+@media (max-width: 768px) {
+  .entrega-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .entrega-resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .file-label-large {
+    min-height: 150px;
+  }
+}
+</style>
+
+{% endblock %}
