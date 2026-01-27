@@ -393,3 +393,7 @@ def descargar_plantilla(request):
     wb.save(response)
     
     return response
+
+def PedidosCompra(request):
+    return render(request, 'almacenes/almgeneral/PedidosCompra.html')
+

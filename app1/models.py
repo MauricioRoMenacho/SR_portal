@@ -114,3 +114,28 @@ class MovimientoInventario(models.Model):
         verbose_name = 'Movimiento de Inventario'
         verbose_name_plural = 'Movimientos de Inventario'
         ordering = ['-fecha_movimiento']
+
+
+
+class PedidoCompra(models.Model):
+    ESTADO_CHOICES = [
+        ('PEND', 'Pendiente'),
+        ('COMP', 'Completado'),
+        ('ENTR', 'Entregado'),
+    ]
+    
+    id_pedido = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=200)
+    descripcion = models.TextField(blank=True, null=True)
+    estado = models.CharField(max_length=4, choices=ESTADO_CHOICES, default='PEND')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"PC-{self.id_pedido:04d} - {self.nombre}"
+    
+    class Meta:
+        db_table = 'pedidos_compra'
+        verbose_name = 'Pedido de Compra'
+        verbose_name_plural = 'Pedidos de Compra'
+        ordering = ['-fecha_creacion']

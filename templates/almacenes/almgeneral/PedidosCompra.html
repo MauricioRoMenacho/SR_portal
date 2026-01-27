@@ -1,0 +1,354 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Pedidos de Compra - Sistema{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/PedidosCompra.css' %}">
+
+<div class="pedidos-container">
+  
+  <!-- Header -->
+  <div class="pedidos-header">
+    <h1>
+      <i class="fa-solid fa-clipboard-list"></i>
+      Pedidos de Compra
+    </h1>
+    <button class="btn-primary" onclick="abrirModalNuevoPedido()">
+      <i class="fa-solid fa-plus"></i>
+      Nuevo Pedido de Compra
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filtros-container">
+    
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-search"></i>
+        Buscar
+      </label>
+      <input 
+        type="text" 
+        id="filtroBuscar" 
+        class="filtro-input" 
+        placeholder="Nombre, código o descripción..."
+      >
+    </div>
+
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-filter"></i>
+        Estado
+      </label>
+      <select id="filtroEstado" class="filtro-input">
+        <option value="">Todos los estados</option>
+        <option value="PEND">Pendiente</option>
+        <option value="COMP">Completado</option>
+        <option value="ENTR">Entregado</option>
+      </select>
+    </div>
+
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-calendar"></i>
+        Fecha Desde
+      </label>
+      <input 
+        type="date" 
+        id="filtroFechaDesde" 
+        class="filtro-input"
+      >
+    </div>
+
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-calendar"></i>
+        Fecha Hasta
+      </label>
+      <input 
+        type="date" 
+        id="filtroFechaHasta" 
+        class="filtro-input"
+      >
+    </div>
+
+    <button class="btn-limpiar" onclick="limpiarFiltros()">
+      <i class="fa-solid fa-eraser"></i>
+      Limpiar
+    </button>
+
+  </div>
+
+  <!-- Contador de resultados -->
+  <div class="resultados-info">
+    Mostrando <strong id="contadorResultados">{{ total_pedidos }}</strong> de <strong id="totalPedidos">{{ total_pedidos }}</strong> pedidos
+  </div>
+
+  <!-- Tabla de pedidos -->
+  <div class="tabla-container">
+    <table class="tabla-pedidos">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Descripción</th>
+          <th>Estado</th>
+          <th>Fecha Creación</th>
+          <th>Última Modificación</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaBody">
+        
+        {% for pedido in pedidos %}
+        <tr data-nombre="{{ pedido.nombre|lower }}" 
+            data-codigo="{{ pedido.codigo|lower }}"
+            data-estado="{{ pedido.estado }}"
+            data-fecha="{{ pedido.fecha_creacion|date:'Y-m-d' }}">
+          
+          <td class="codigo">
+            <strong>PC-{{ pedido.id_pedido|stringformat:"04d" }}</strong>
+          </td>
+          <td class="nombre">{{ pedido.nombre }}</td>
+          <td class="descripcion">{{ pedido.descripcion|truncatewords:8 }}</td>
+          <td>
+            {% if pedido.estado == 'PEND' %}
+              <span class="badge estado-pendiente">
+                <i class="fa-solid fa-clock"></i>
+                Pendiente
+              </span>
+            {% elif pedido.estado == 'COMP' %}
+              <span class="badge estado-completado">
+                <i class="fa-solid fa-check"></i>
+                Completado
+              </span>
+            {% elif pedido.estado == 'ENTR' %}
+              <span class="badge estado-entregado">
+                <i class="fa-solid fa-box-open"></i>
+                Entregado
+              </span>
+            {% endif %}
+          </td>
+          <td>{{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</td>
+          <td>{{ pedido.fecha_modificacion|date:"d/m/Y H:i" }}</td>
+          <td class="acciones">
+            <button class="btn-icon btn-info" 
+                    title="Ver Detalles" 
+                    data-id="{{ pedido.id_pedido }}"
+                    onclick="verDetallesPedido(this.dataset.id)">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="btn-icon btn-success" 
+                    title="Ver Cotizaciones" 
+                    data-id="{{ pedido.id_pedido }}"
+                    onclick="verCotizaciones(this.dataset.id)">
+              <i class="fa-solid fa-file-invoice-dollar"></i>
+            </button>
+            <button class="btn-icon btn-warning" 
+                    title="Editar" 
+                    data-id="{{ pedido.id_pedido }}"
+                    onclick="editarPedido(this.dataset.id)">
+              <i class="fa-solid fa-edit"></i>
+            </button>
+            <button class="btn-icon btn-danger" 
+                    title="Eliminar" 
+                    data-id="{{ pedido.id_pedido }}"
+                    data-nombre="{{ pedido.nombre }}"
+                    onclick="eliminarPedido(this.dataset.id, this.dataset.nombre)">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 3rem; color: #666;">
+            <i class="fa-solid fa-inbox" style="font-size: 48px; margin-bottom: 1rem; display: block; color: #ccc;"></i>
+            No hay pedidos de compra registrados
+          </td>
+        </tr>
+        {% endfor %}
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mensaje si no hay resultados -->
+  <div id="sinResultados" class="sin-resultados" style="display: none;">
+    <i class="fa-solid fa-search"></i>
+    <p>No se encontraron pedidos con los filtros seleccionados</p>
+    <button class="btn-secondary" onclick="limpiarFiltros()">
+      <i class="fa-solid fa-rotate-left"></i>
+      Limpiar Filtros
+    </button>
+  </div>
+
+</div>
+
+<!-- Modal: Nuevo Pedido de Compra -->
+<div class="modal-overlay" id="modalNuevoPedido">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>
+        <i class="fa-solid fa-plus-circle"></i>
+        Nuevo Pedido de Compra
+      </h2>
+      <button class="btn-close" onclick="cerrarModalNuevoPedido()">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    
+    <form method="POST" action="#">
+      {% csrf_token %}
+      
+      <div class="modal-body">
+        
+        <div class="form-group">
+          <label>
+            <i class="fa-solid fa-tag"></i>
+            Nombre del Pedido *
+          </label>
+          <input 
+            type="text" 
+            name="nombre" 
+            class="form-input" 
+            placeholder="Ej: Equipamiento Deportivo 2025"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label>
+            <i class="fa-solid fa-align-left"></i>
+            Descripción
+          </label>
+          <textarea 
+            name="descripcion" 
+            class="form-input" 
+            rows="4"
+            placeholder="Describe brevemente el pedido de compra..."
+          ></textarea>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="cerrarModalNuevoPedido()">
+          <i class="fa-solid fa-times"></i>
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary">
+          <i class="fa-solid fa-save"></i>
+          Crear Pedido
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ========== FILTROS ==========
+const filtroBuscar = document.getElementById('filtroBuscar');
+const filtroEstado = document.getElementById('filtroEstado');
+const filtroFechaDesde = document.getElementById('filtroFechaDesde');
+const filtroFechaHasta = document.getElementById('filtroFechaHasta');
+const tablaBody = document.getElementById('tablaBody');
+const contadorResultados = document.getElementById('contadorResultados');
+const totalPedidos = document.getElementById('totalPedidos');
+const sinResultados = document.getElementById('sinResultados');
+
+const totalFilas = tablaBody.querySelectorAll('tr[data-nombre]').length;
+totalPedidos.textContent = totalFilas;
+
+function filtrarTabla() {
+  const buscar = filtroBuscar.value.toLowerCase();
+  const estado = filtroEstado.value;
+  const fechaDesde = filtroFechaDesde.value;
+  const fechaHasta = filtroFechaHasta.value;
+  
+  const filas = tablaBody.querySelectorAll('tr[data-nombre]');
+  let contador = 0;
+  
+  filas.forEach(fila => {
+    const nombre = fila.getAttribute('data-nombre');
+    const codigo = fila.getAttribute('data-codigo');
+    const estadoFila = fila.getAttribute('data-estado');
+    const fechaFila = fila.getAttribute('data-fecha');
+    
+    const cumpleBuscar = buscar === '' || nombre.includes(buscar) || codigo.includes(buscar);
+    const cumpleEstado = estado === '' || estadoFila === estado;
+    const cumpleFechaDesde = fechaDesde === '' || fechaFila >= fechaDesde;
+    const cumpleFechaHasta = fechaHasta === '' || fechaFila <= fechaHasta;
+    
+    if (cumpleBuscar && cumpleEstado && cumpleFechaDesde && cumpleFechaHasta) {
+      fila.style.display = '';
+      contador++;
+    } else {
+      fila.style.display = 'none';
+    }
+  });
+  
+  contadorResultados.textContent = contador;
+  
+  if (contador === 0 && totalFilas > 0) {
+    sinResultados.style.display = 'flex';
+    document.querySelector('.tabla-container').style.display = 'none';
+  } else {
+    sinResultados.style.display = 'none';
+    document.querySelector('.tabla-container').style.display = 'block';
+  }
+}
+
+filtroBuscar.addEventListener('input', filtrarTabla);
+filtroEstado.addEventListener('change', filtrarTabla);
+filtroFechaDesde.addEventListener('change', filtrarTabla);
+filtroFechaHasta.addEventListener('change', filtrarTabla);
+
+function limpiarFiltros() {
+  filtroBuscar.value = '';
+  filtroEstado.value = '';
+  filtroFechaDesde.value = '';
+  filtroFechaHasta.value = '';
+  filtrarTabla();
+}
+
+// ========== MODAL ==========
+function abrirModalNuevoPedido() {
+  document.getElementById('modalNuevoPedido').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarModalNuevoPedido() {
+  document.getElementById('modalNuevoPedido').classList.remove('show');
+  document.body.style.overflow = 'auto';
+}
+
+// Cerrar modal al hacer clic fuera
+document.getElementById('modalNuevoPedido').addEventListener('click', function(e) {
+  if (e.target === this) {
+    cerrarModalNuevoPedido();
+  }
+});
+
+// ========== ACCIONES ==========
+function verDetallesPedido(id) {
+  window.location.href = `/detalle-pedido-compra/${id}/`;
+}
+
+function verCotizaciones(id) {
+  window.location.href = `/cotizaciones-pedido/${id}/`;
+}
+
+function editarPedido(id) {
+  window.location.href = `/editar-pedido-compra/${id}/`;
+}
+
+function eliminarPedido(id, nombre) {
+  const mensaje = `¿Estás seguro de eliminar el pedido "${nombre}"?\n\nEsta acción no se puede deshacer.`;
+  if (confirm(mensaje)) {
+    window.location.href = `/eliminar-pedido-compra/${id}/`;
+  }
+}
+</script>
+
+{% endblock %}
