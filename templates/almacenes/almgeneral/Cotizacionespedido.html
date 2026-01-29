@@ -112,7 +112,7 @@
           </td>
           <td class="descripcion">{{ cotizacion.descripcion|truncatewords:8|default:"Sin descripción" }}</td>
           <td class="archivo-cell">
-            <button class="archivo-link" onclick="abrirVistaPrevia({{ cotizacion.id_cotizacion }}, '{{ cotizacion.proveedor }}', '{{ cotizacion.documento.name }}')" title="Ver documento">
+            <button class="archivo-link" onclick="abrirDocumento({{ cotizacion.id_cotizacion }}, '{{ cotizacion.proveedor }}', '{{ cotizacion.documento.name }}')" title="Ver documento">
               <i class="fa-solid fa-file-{% if cotizacion.documento.name|slice:'-3:' == 'pdf' %}pdf{% elif cotizacion.documento.name|slice:'-3:' == 'doc' or cotizacion.documento.name|slice:'-4:' == 'docx' %}word{% else %}lines{% endif %}"></i>
               Ver documento
             </button>
@@ -172,7 +172,7 @@
 
 </div>
 
-<!-- Modal para Vista Previa de Documentos -->
+<!-- Modal para Vista Previa de PDFs -->
 <div id="modalVistaPrevia" class="modal-visor">
   <div class="modal-visor-content">
     <div class="modal-visor-header">
@@ -189,26 +189,7 @@
         <i class="fa-solid fa-spinner fa-spin"></i>
         <p>Cargando documento...</p>
       </div>
-      
-      <!-- Visor de PDF -->
-      <iframe id="visorPDF" frameborder="0" style="display: none;"></iframe>
-      
-      <!-- Mensaje para documentos Word -->
-      <div id="vistaWord" class="vista-word" style="display: none;">
-        <div class="word-info-card">
-          <i class="fa-solid fa-file-word word-icon"></i>
-          <h4>Documento de Word</h4>
-          <p class="proveedor-name" id="proveedorNombre"></p>
-          <p class="file-info">Los documentos Word no pueden visualizarse directamente en el navegador.</p>
-          <div class="word-actions">
-            <button class="btn-primary btn-large" onclick="descargarDocumento()">
-              <i class="fa-solid fa-download"></i>
-              Descargar Documento
-            </button>
-            <p class="download-hint">Se descargará automáticamente y podrás abrirlo en Microsoft Word o LibreOffice</p>
-          </div>
-        </div>
-      </div>
+      <iframe id="visorPDF" frameborder="0"></iframe>
     </div>
     <div class="modal-visor-footer">
       <button class="btn-secondary" onclick="cerrarVistaPrevia()">
@@ -223,6 +204,17 @@
   </div>
 </div>
 
+<!-- Toast de notificación para descarga de Word -->
+<div id="toastDescarga" class="toast-notificacion">
+  <div class="toast-contenido">
+    <i class="fa-solid fa-download toast-icon"></i>
+    <div class="toast-texto">
+      <strong>Descargando documento...</strong>
+      <p>El archivo se descargará automáticamente</p>
+    </div>
+  </div>
+</div>
+
 <script>
 // Auto-cerrar mensajes
 setTimeout(() => {
@@ -233,126 +225,110 @@ setTimeout(() => {
   });
 }, 5000);
 
-// Variable global para el archivo actual
-let archivoActual = '';
+// Función para abrir documento (PDF en modal, Word descarga automática)
+function abrirDocumento(cotizacionId, proveedor, fileName) {
+  const extension = fileName.split('.').pop().toLowerCase();
+  const documentoUrl = `/documento/${cotizacionId}/`;
+  
+  if (extension === 'pdf') {
+    // Para PDFs: abrir en modal
+    abrirModalPDF(cotizacionId, proveedor, fileName, documentoUrl);
+  } else if (extension === 'doc' || extension === 'docx') {
+    // Para Word: descargar automáticamente
+    descargarWord(documentoUrl, fileName, proveedor);
+  } else {
+    // Otros archivos: intentar abrir en modal
+    abrirModalPDF(cotizacionId, proveedor, fileName, documentoUrl);
+  }
+}
 
-// Función para abrir vista previa SIN USAR SERVICIOS EXTERNOS
-function abrirVistaPrevia(cotizacionId, proveedor, fileName) {
+// Abrir PDF en modal
+function abrirModalPDF(cotizacionId, proveedor, fileName, url) {
   const modal = document.getElementById('modalVistaPrevia');
   const visorPDF = document.getElementById('visorPDF');
-  const vistaWord = document.getElementById('vistaWord');
   const titulo = document.getElementById('modalTitulo');
   const btnDescargar = document.getElementById('btnDescargar');
   const cargando = document.getElementById('cargandoDoc');
-  const proveedorNombre = document.getElementById('proveedorNombre');
   
-  // Resetear estados
+  // Mostrar loading
   cargando.style.display = 'flex';
   visorPDF.style.display = 'none';
-  vistaWord.style.display = 'none';
-  
-  // Detectar tipo de archivo
-  const extension = fileName.split('.').pop().toLowerCase();
-  
-  // Determinar icono según el tipo de archivo
-  let iconClass = 'fa-file-lines';
-  if (extension === 'pdf') {
-    iconClass = 'fa-file-pdf';
-  } else if (extension === 'doc' || extension === 'docx') {
-    iconClass = 'fa-file-word';
-  }
   
   // Actualizar título
-  titulo.innerHTML = `<i class="fa-solid ${iconClass}"></i> Cotización - ${proveedor}`;
+  titulo.innerHTML = `<i class="fa-solid fa-file-pdf"></i> Cotización - ${proveedor}`;
   
-  // Construir URL para ver el documento (USANDO TU SERVIDOR, NO MICROSOFT)
-  const viewerUrl = `/documento/${cotizacionId}/`;
-  archivoActual = viewerUrl;
+  // Configurar iframe
+  visorPDF.src = url + '#toolbar=1&navpanes=1&scrollbar=1&view=FitH';
   
   // Configurar botón de descarga
-  btnDescargar.href = viewerUrl;
+  btnDescargar.href = url;
   btnDescargar.download = fileName;
   
-  // Configurar visualización según tipo de archivo
-  if (extension === 'pdf') {
-    // ✅ Para PDFs: cargar directamente en iframe (SIN SERVICIOS EXTERNOS)
-    visorPDF.src = viewerUrl + '#toolbar=1&navpanes=1&scrollbar=1&view=FitH';
-    
-    visorPDF.onload = function() {
+  // Manejar carga
+  visorPDF.onload = function() {
+    cargando.style.display = 'none';
+    visorPDF.style.display = 'block';
+  };
+  
+  // Fallback
+  setTimeout(() => {
+    if (cargando.style.display !== 'none') {
       cargando.style.display = 'none';
       visorPDF.style.display = 'block';
-    };
-    
-    // Fallback para PDFs
-    setTimeout(() => {
-      if (cargando.style.display !== 'none') {
-        cargando.style.display = 'none';
-        visorPDF.style.display = 'block';
-      }
-    }, 2000);
-    
-  } else if (extension === 'doc' || extension === 'docx') {
-    // ✅ Para documentos Word: mostrar tarjeta bonita con opción de descarga
-    proveedorNombre.textContent = `Proveedor: ${proveedor}`;
-    
-    setTimeout(() => {
-      cargando.style.display = 'none';
-      vistaWord.style.display = 'flex';
-    }, 500);
-  } else {
-    // Para otros tipos: intentar mostrar en iframe
-    visorPDF.src = viewerUrl;
-    
-    setTimeout(() => {
-      cargando.style.display = 'none';
-      visorPDF.style.display = 'block';
-    }, 2000);
-  }
+    }
+  }, 2000);
   
   // Mostrar modal
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
 
-function descargarDocumento() {
-  if (archivoActual) {
-    // Crear un enlace temporal para forzar la descarga
-    const link = document.createElement('a');
-    link.href = archivoActual;
-    link.download = ''; // Esto fuerza la descarga
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Cerrar el modal después de iniciar la descarga
-    setTimeout(() => {
-      cerrarVistaPrevia();
-    }, 500);
-  }
+// Descargar documento Word automáticamente
+function descargarWord(url, fileName, proveedor) {
+  // Mostrar toast de notificación
+  mostrarToast();
+  
+  // Crear iframe oculto para forzar descarga
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = url;
+  document.body.appendChild(iframe);
+  
+  // Remover iframe después de 3 segundos
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+  }, 3000);
+}
+
+// Mostrar toast de descarga
+function mostrarToast() {
+  const toast = document.getElementById('toastDescarga');
+  toast.classList.add('toast-visible');
+  
+  setTimeout(() => {
+    toast.classList.remove('toast-visible');
+  }, 3000);
 }
 
 function cerrarVistaPrevia() {
   const modal = document.getElementById('modalVistaPrevia');
   const visorPDF = document.getElementById('visorPDF');
   
-  // Ocultar modal
   modal.style.display = 'none';
   document.body.style.overflow = 'auto';
   
-  // Limpiar iframe
   visorPDF.src = '';
   visorPDF.onload = null;
-  archivoActual = '';
 }
 
-// Cerrar modal al hacer clic fuera de él
+// Cerrar modal al hacer clic fuera
 document.getElementById('modalVistaPrevia').addEventListener('click', function(e) {
   if (e.target === this) {
     cerrarVistaPrevia();
   }
 });
 
-// Cerrar modal con tecla ESC
+// Cerrar con ESC
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     cerrarVistaPrevia();
@@ -455,7 +431,6 @@ document.addEventListener('keydown', function(e) {
   font-size: 15px;
 }
 
-/* Estilos para el botón de ver documento */
 .archivo-link {
   background: transparent;
   border: none;
@@ -480,7 +455,7 @@ document.addEventListener('keydown', function(e) {
   font-size: 16px;
 }
 
-/* Estilos del Modal de Vista Previa */
+/* Modal de vista previa */
 .modal-visor {
   display: none;
   position: fixed;
@@ -569,6 +544,7 @@ document.addEventListener('keydown', function(e) {
   height: 100%;
   border: none;
   background: white;
+  display: none;
 }
 
 .loading-documento {
@@ -594,91 +570,6 @@ document.addEventListener('keydown', function(e) {
   font-size: 16px;
 }
 
-/* Vista para documentos Word */
-.vista-word {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  z-index: 15;
-}
-
-.word-info-card {
-  background: white;
-  border-radius: 20px;
-  padding: 50px 40px;
-  text-align: center;
-  max-width: 500px;
-  width: 100%;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  animation: slideUp 0.4s ease;
-}
-
-.word-icon {
-  font-size: 80px;
-  color: #2B579A;
-  margin-bottom: 20px;
-}
-
-.word-info-card h4 {
-  margin: 0 0 10px 0;
-  color: #333;
-  font-size: 26px;
-  font-weight: 600;
-}
-
-.proveedor-name {
-  color: #148129;
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 20px 0;
-}
-
-.file-info {
-  color: #666;
-  font-size: 15px;
-  line-height: 1.6;
-  margin: 0 0 30px 0;
-}
-
-.word-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.btn-large {
-  padding: 16px 32px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(20, 129, 41, 0.3);
-  transition: all 0.3s ease;
-}
-
-.btn-large:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(20, 129, 41, 0.4);
-}
-
-.btn-large i {
-  margin-right: 10px;
-  font-size: 18px;
-}
-
-.download-hint {
-  color: #999;
-  font-size: 13px;
-  margin: 0;
-  line-height: 1.4;
-}
-
 .modal-visor-footer {
   padding: 16px 24px;
   border-top: 1px solid #e0e0e0;
@@ -690,13 +581,53 @@ document.addEventListener('keydown', function(e) {
   flex-shrink: 0;
 }
 
+/* Toast de notificación */
+.toast-notificacion {
+  position: fixed;
+  bottom: -100px;
+  right: 24px;
+  background: white;
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  border-left: 4px solid #148129;
+  z-index: 10000;
+  transition: bottom 0.4s ease;
+  min-width: 320px;
+}
+
+.toast-notificacion.toast-visible {
+  bottom: 24px;
+}
+
+.toast-contenido {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toast-icon {
+  font-size: 28px;
+  color: #148129;
+  flex-shrink: 0;
+}
+
+.toast-texto strong {
+  display: block;
+  color: #333;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.toast-texto p {
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+}
+
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideUp {
@@ -750,13 +681,10 @@ document.addEventListener('keydown', function(e) {
     justify-content: center;
   }
   
-  .word-info-card {
-    padding: 40px 30px;
-    max-width: 90%;
-  }
-  
-  .word-icon {
-    font-size: 60px;
+  .toast-notificacion {
+    right: 16px;
+    left: 16px;
+    min-width: auto;
   }
 }
 </style>
