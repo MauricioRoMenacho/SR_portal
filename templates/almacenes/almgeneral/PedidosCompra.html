@@ -101,109 +101,111 @@
   </div>
 
   <!-- Tabla de pedidos -->
-  <div class="tabla-container">
-    <table class="tabla-pedidos">
-      <thead>
-        <tr>
-          <th>Código</th>
-          <th>Nombre</th>
-          <th>Descripción</th>
-          <th>Productos</th>
-          <th>Archivo</th>
-          <th>Estado</th>
-          <th>Fecha Creación</th>
-          <th>Última Modificación</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="tablaBody">
-        
-        {% for pedido in pedidos %}
-        <tr data-nombre="{{ pedido.nombre|lower }}" 
-            data-codigo="{{ pedido.id_pedido }}"
-            data-estado="{{ pedido.estado }}"
-            data-fecha="{{ pedido.fecha_creacion|date:'Y-m-d' }}">
+  <div class="tabla-wrapper">
+    <div class="tabla-container">
+      <table class="tabla-pedidos">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Productos</th>
+            <th>Archivo</th>
+            <th>Estado</th>
+            <th>Fecha Creación</th>
+            <th>Última Modificación</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaBody">
           
-          <td class="codigo">
-            <strong>PC-{{ pedido.id_pedido|stringformat:"04d" }}</strong>
-          </td>
-          <td class="nombre">{{ pedido.nombre }}</td>
-          <td class="descripcion">{{ pedido.descripcion|truncatewords:8 }}</td>
-          <td class="text-center">
-            <span class="badge badge-info">
-              <i class="fa-solid fa-boxes-stacked"></i>
-              {{ pedido.total_items }} productos
-            </span>
-          </td>
-          <td class="archivo-cell">
-            {% if pedido.archivo %}
-            <a href="{{ pedido.archivo.url }}" target="_blank" class="archivo-link" title="Descargar archivo">
-              <i class="fa-solid fa-file-{% if pedido.archivo.name|slice:'-3:' == 'pdf' %}pdf{% else %}word{% endif %}"></i>
-              {{ pedido.archivo.name|slice:"-20:" }}
-            </a>
-            {% else %}
-            <span class="sin-archivo">Sin archivo</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if pedido.estado == 'PEND' %}
-              <span class="badge estado-pendiente">
-                <i class="fa-solid fa-clock"></i>
-                Pendiente
+          {% for pedido in pedidos %}
+          <tr data-nombre="{{ pedido.nombre|lower }}" 
+              data-codigo="{{ pedido.id_pedido }}"
+              data-estado="{{ pedido.estado }}"
+              data-fecha="{{ pedido.fecha_creacion|date:'Y-m-d' }}">
+            
+            <td data-label="Código">
+              <strong>PC-{{ pedido.id_pedido|stringformat:"04d" }}</strong>
+            </td>
+            <td data-label="Nombre">{{ pedido.nombre }}</td>
+            <td data-label="Descripción">{{ pedido.descripcion|truncatewords:8 }}</td>
+            <td data-label="Productos" class="text-center">
+              <span class="badge badge-info">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                {{ pedido.total_items }} productos
               </span>
-            {% elif pedido.estado == 'COMP' %}
-              <span class="badge estado-completado">
-                <i class="fa-solid fa-check"></i>
-                Completado
-              </span>
-            {% elif pedido.estado == 'ENTR' %}
-              <span class="badge estado-entregado">
-                <i class="fa-solid fa-box-open"></i>
-                Entregado
-              </span>
-            {% endif %}
-          </td>
-          <td>{{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</td>
-          <td>{{ pedido.fecha_modificacion|date:"d/m/Y H:i" }}</td>
-          <td class="acciones">
-            <button class="btn-icon btn-info" 
-                    title="Ver Detalles" 
-                    data-id="{{ pedido.id_pedido }}"
-                    onclick="verDetallesPedido(this.dataset.id)">
-              <i class="fa-solid fa-eye"></i>
-            </button>
-            <button class="btn-icon btn-success" 
-                    title="Ver Cotizaciones" 
-                    data-id="{{ pedido.id_pedido }}"
-                    onclick="verCotizaciones(this.dataset.id)">
-              <i class="fa-solid fa-file-invoice-dollar"></i>
-            </button>
-            <button class="btn-icon btn-warning" 
-                    title="Editar" 
-                    data-id="{{ pedido.id_pedido }}"
-                    onclick="editarPedido(this.dataset.id)">
-              <i class="fa-solid fa-edit"></i>
-            </button>
-            <button class="btn-icon btn-danger" 
-                    title="Eliminar" 
-                    data-id="{{ pedido.id_pedido }}"
-                    data-nombre="{{ pedido.nombre }}"
-                    onclick="eliminarPedido(this.dataset.id, this.dataset.nombre)">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="9" style="text-align: center; padding: 3rem; color: #666;">
-            <i class="fa-solid fa-inbox" style="font-size: 48px; margin-bottom: 1rem; display: block; color: #ccc;"></i>
-            No hay pedidos de compra registrados
-          </td>
-        </tr>
-        {% endfor %}
+            </td>
+            <td data-label="Archivo" class="archivo-cell">
+              {% if pedido.archivo %}
+              <a href="{{ pedido.archivo.url }}" target="_blank" class="archivo-link" title="Descargar archivo">
+                <i class="fa-solid fa-file-{% if pedido.archivo.name|slice:'-3:' == 'pdf' %}pdf{% else %}word{% endif %}"></i>
+                {{ pedido.archivo.name|slice:"-20:" }}
+              </a>
+              {% else %}
+              <span class="sin-archivo">Sin archivo</span>
+              {% endif %}
+            </td>
+            <td data-label="Estado">
+              {% if pedido.estado == 'PEND' %}
+                <span class="badge estado-pendiente">
+                  <i class="fa-solid fa-clock"></i>
+                  Pendiente
+                </span>
+              {% elif pedido.estado == 'COMP' %}
+                <span class="badge estado-completado">
+                  <i class="fa-solid fa-check"></i>
+                  Completado
+                </span>
+              {% elif pedido.estado == 'ENTR' %}
+                <span class="badge estado-entregado">
+                  <i class="fa-solid fa-box-open"></i>
+                  Entregado
+                </span>
+              {% endif %}
+            </td>
+            <td data-label="Fecha Creación">{{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</td>
+            <td data-label="Última Modificación">{{ pedido.fecha_modificacion|date:"d/m/Y H:i" }}</td>
+            <td data-label="Acciones" class="acciones">
+              <button class="btn-icon btn-info" 
+                      title="Ver Detalles" 
+                      data-id="{{ pedido.id_pedido }}"
+                      onclick="verDetallesPedido(this.dataset.id)">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button class="btn-icon btn-success" 
+                      title="Ver Cotizaciones" 
+                      data-id="{{ pedido.id_pedido }}"
+                      onclick="verCotizaciones(this.dataset.id)">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+              </button>
+              <button class="btn-icon btn-warning" 
+                      title="Editar" 
+                      data-id="{{ pedido.id_pedido }}"
+                      onclick="editarPedido(this.dataset.id)">
+                <i class="fa-solid fa-edit"></i>
+              </button>
+              <button class="btn-icon btn-danger" 
+                      title="Eliminar" 
+                      data-id="{{ pedido.id_pedido }}"
+                      data-nombre="{{ pedido.nombre }}"
+                      onclick="eliminarPedido(this.dataset.id, this.dataset.nombre)">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 3rem; color: #666;">
+              <i class="fa-solid fa-inbox" style="font-size: 48px; margin-bottom: 1rem; display: block; color: #ccc;"></i>
+              No hay pedidos de compra registrados
+            </td>
+          </tr>
+          {% endfor %}
 
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- Mensaje si no hay resultados -->
@@ -264,10 +266,10 @@ function filtrarTabla() {
   
   if (contador === 0 && totalFilas > 0) {
     sinResultados.style.display = 'flex';
-    document.querySelector('.tabla-container').style.display = 'none';
+    document.querySelector('.tabla-wrapper').style.display = 'none';
   } else {
     sinResultados.style.display = 'none';
-    document.querySelector('.tabla-container').style.display = 'block';
+    document.querySelector('.tabla-wrapper').style.display = 'block';
   }
 }
 
@@ -335,6 +337,136 @@ setTimeout(() => {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+
+/* ========== TABLA RESPONSIVE ========== */
+.tabla-wrapper {
+  width: 100%;
+  overflow: hidden;
+}
+
+.tabla-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabla-pedidos {
+  width: 100%;
+  min-width: 1200px; /* Ancho mínimo para que se vea bien */
+  border-collapse: collapse;
+}
+
+/* Ajustes para tablets */
+@media screen and (max-width: 1200px) {
+  .tabla-pedidos {
+    min-width: 1000px;
+    font-size: 14px;
+  }
+  
+  .tabla-pedidos th,
+  .tabla-pedidos td {
+    padding: 10px 8px;
+  }
+}
+
+/* Ajustes para pantallas móviles - Vista de tarjetas */
+@media screen and (max-width: 768px) {
+  .tabla-wrapper {
+    overflow: visible;
+  }
+  
+  .tabla-container {
+    overflow-x: visible;
+  }
+  
+  .tabla-pedidos {
+    min-width: 100%;
+  }
+  
+  .tabla-pedidos thead {
+    display: none;
+  }
+  
+  .tabla-pedidos tbody tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .tabla-pedidos tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: right;
+  }
+  
+  .tabla-pedidos tbody td:last-child {
+    border-bottom: none;
+  }
+  
+  .tabla-pedidos tbody td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    text-align: left;
+    flex: 1;
+    color: #333;
+  }
+  
+  .tabla-pedidos tbody td .badge {
+    margin-left: auto;
+  }
+  
+  .acciones {
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .acciones::before {
+    flex: 1 1 100%;
+    margin-bottom: 8px;
+  }
+  
+  .btn-icon {
+    margin: 0 4px;
+  }
+}
+
+/* Ajustes para móviles muy pequeños */
+@media screen and (max-width: 480px) {
+  .pedidos-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .pedidos-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .filtros-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .tabla-pedidos tbody td {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .tabla-pedidos tbody td::before {
+    margin-bottom: 4px;
+  }
+  
+  .acciones {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>
 
