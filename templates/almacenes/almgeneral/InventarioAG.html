@@ -15,18 +15,20 @@
       Inventario - Almacén General
     </h1>
 
-    <a href="{% url 'agregar_producto' %}">
-      <button class="btn-primary">
-        <i class="fa-solid fa-plus"></i>
-        Agregar Producto
-      </button>
-    </a>
-    <a href="{% url 'importar_excel' %}">
-      <button class="btn-secondary">
-        <i class="fa-solid fa-file-excel"></i>
-        Importar Excel
-      </button>
-    </a>
+    <div class="header-buttons">
+      <a href="{% url 'agregar_producto' %}">
+        <button class="btn-primary">
+          <i class="fa-solid fa-plus"></i>
+          Agregar Producto
+        </button>
+      </a>
+      <a href="{% url 'importar_excel' %}">
+        <button class="btn-secondary" style="background: white !important; color: #148129 !important; border: 2px solid #148129 !important;">
+          <i class="fa-solid fa-file-excel"></i>
+          Importar Excel
+        </button>
+      </a>
+    </div>
   </div>
 
   <!-- Filtros -->
@@ -84,64 +86,66 @@
   </div>
 
   <!-- Tabla de inventario -->
-  <div class="tabla-container">
-    <table class="tabla-inventario">
-      <thead>
-        <tr>
-          <th>Código</th>
-          <th>Nombre</th>
-          <th>Descripción</th>
-          <th>Cantidad</th>
-          <th>Unidad</th>
-          <th>Ubicación</th>
-          <th>Estado</th>
-          <th>Fecha Ingreso</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="tablaBody">
-        
-        {% for producto in productos %}
-        <tr data-nombre="{{ producto.nombre|lower }}" 
-            data-estado="{{ producto.estado }}" 
-            data-estante="{{ producto.estante|lower }}">
+  <div class="tabla-wrapper">
+    <div class="tabla-container">
+      <table class="tabla-inventario">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Cantidad</th>
+            <th>Unidad</th>
+            <th>Ubicación</th>
+            <th>Estado</th>
+            <th>Fecha Ingreso</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaBody">
           
-          <td class="codigo">PRD-{{ producto.id_producto|stringformat:"03d" }}</td>
-          <td class="nombre">{{ producto.nombre }}</td>
-          <td>{{ producto.descripcion }}</td>
-          <td class="cantidad">{{ producto.cantidad }}</td>
-          <td>{{ producto.unidad }}</td>
-          <td>{{ producto.estante }}</td>
-          <td>
-            {% if producto.estado == 'DISP' %}
-              <span class="badge estado-disponible">Disponible</span>
-            {% elif producto.estado == 'BAJO' %}
-              <span class="badge estado-bajo">Stock Bajo</span>
-            {% elif producto.estado == 'AGOT' %}
-              <span class="badge estado-agotado">Agotado</span>
-            {% endif %}
-          </td>
-          <td>{{ producto.fecha_ingreso|date:"d/m/Y" }}</td>
-          <td class="acciones">
-            <button class="btn-icon btn-danger btn-eliminar" 
-                    title="Eliminar" 
-                    type="button"
-                    data-id="{{ producto.id_producto }}" 
-                    data-nombre="{{ producto.nombre }}">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="9" style="text-align: center; padding: 2rem;">
-            No hay productos registrados en el Almacén General
-          </td>
-        </tr>
-        {% endfor %}
+          {% for producto in productos %}
+          <tr data-nombre="{{ producto.nombre|lower }}" 
+              data-estado="{{ producto.estado }}" 
+              data-estante="{{ producto.estante|lower }}">
+            
+            <td data-label="Código" class="codigo">PRD-{{ producto.id_producto|stringformat:"03d" }}</td>
+            <td data-label="Nombre" class="nombre">{{ producto.nombre }}</td>
+            <td data-label="Descripción">{{ producto.descripcion }}</td>
+            <td data-label="Cantidad" class="cantidad">{{ producto.cantidad }}</td>
+            <td data-label="Unidad">{{ producto.unidad }}</td>
+            <td data-label="Ubicación">{{ producto.estante }}</td>
+            <td data-label="Estado">
+              {% if producto.estado == 'DISP' %}
+                <span class="badge estado-disponible">Disponible</span>
+              {% elif producto.estado == 'BAJO' %}
+                <span class="badge estado-bajo">Stock Bajo</span>
+              {% elif producto.estado == 'AGOT' %}
+                <span class="badge estado-agotado">Agotado</span>
+              {% endif %}
+            </td>
+            <td data-label="Fecha Ingreso">{{ producto.fecha_ingreso|date:"d/m/Y" }}</td>
+            <td data-label="Acciones" class="acciones">
+              <button class="btn-icon btn-danger btn-eliminar" 
+                      title="Eliminar" 
+                      type="button"
+                      data-id="{{ producto.id_producto }}" 
+                      data-nombre="{{ producto.nombre }}">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 2rem;">
+              No hay productos registrados en el Almacén General
+            </td>
+          </tr>
+          {% endfor %}
 
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- Mensaje si no hay resultados -->
@@ -196,10 +200,10 @@ function filtrarTabla() {
   // Mostrar mensaje si no hay resultados
   if (contador === 0 && totalFilas > 0) {
     sinResultados.style.display = 'flex';
-    document.querySelector('.tabla-container').style.display = 'none';
+    document.querySelector('.tabla-wrapper').style.display = 'none';
   } else {
     sinResultados.style.display = 'none';
-    document.querySelector('.tabla-container').style.display = 'block';
+    document.querySelector('.tabla-wrapper').style.display = 'block';
   }
 }
 

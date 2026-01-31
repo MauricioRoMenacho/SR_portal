@@ -1,315 +1,522 @@
 .inventario-container {
-    padding: 30px;
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-  
-  /* Header */
-  .inventario-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-  }
-  
-  .inventario-header h1 {
-    font-size: 28px;
-    color: #333;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0;
-  }
-  
-  .inventario-header h1 i {
-    color: #148129;
-  }
-  
-  /* Botones */
-  .btn-primary {
-    background: #148129;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s;
-  }
-  
-  .btn-primary:hover {
-    background: #0f6620;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(20, 129, 41, 0.3);
+  padding: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ========== HEADER ========== */
+.inventario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.inventario-header h1 {
+  font-size: 28px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.inventario-header h1 i {
+  color: #148129;
+}
+
+/* Contenedor de botones del header */
+.header-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.header-buttons a {
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* ========== BOTONES ========== */
+.btn-primary,
+.btn-secondary,
+button.btn-primary,
+button.btn-secondary {
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-primary,
+button.btn-primary {
+  background: #148129 !important;
+  color: white !important;
+  border: none !important;
+}
+
+.btn-primary:hover,
+button.btn-primary:hover {
+  background: #0f6620 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(20, 129, 41, 0.3);
+}
+
+.btn-secondary,
+button.btn-secondary {
+  background: #ffffff !important;
+  color: #148129 !important;
+  border: 2px solid #148129 !important;
+}
+
+.btn-secondary:hover,
+button.btn-secondary:hover {
+  background: #148129 !important;
+  color: white !important;
+  border-color: #148129 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(20, 129, 41, 0.3);
+}
+
+.btn-secondary i,
+button.btn-secondary i {
+  color: inherit !important;
+}
+
+.btn-limpiar {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  height: fit-content;
+}
+
+.btn-limpiar:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+/* ========== FILTROS ========== */
+.filtros-container {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 25px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) auto;
+  gap: 20px;
+  align-items: end;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.filtro-grupo label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.filtro-grupo label i {
+  color: #148129;
+  font-size: 13px;
+}
+
+.filtro-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.filtro-input:focus {
+  outline: none;
+  border-color: #148129;
+  box-shadow: 0 0 0 3px rgba(20, 129, 41, 0.1);
+}
+
+/* ========== CONTADOR DE RESULTADOS ========== */
+.resultados-info {
+  margin-bottom: 15px;
+  color: #666;
+  font-size: 14px;
+}
+
+.resultados-info strong {
+  color: #148129;
+  font-weight: 600;
+}
+
+/* ========== TABLA ========== */
+.tabla-wrapper {
+  width: 100%;
+  overflow: hidden;
+}
+
+.tabla-container {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.tabla-inventario {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.tabla-inventario thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.tabla-inventario th {
+  padding: 15px 12px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tabla-inventario tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.tabla-inventario tbody tr:hover {
+  background: #f8fdf9;
+}
+
+.tabla-inventario td {
+  padding: 14px 12px;
+  font-size: 14px;
+  color: #333;
+}
+
+.tabla-inventario td.codigo {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #148129;
+}
+
+.tabla-inventario td.nombre {
+  font-weight: 500;
+}
+
+.tabla-inventario td.cantidad {
+  font-weight: 600;
+  color: #148129;
+}
+
+/* ========== BADGES ========== */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tipo-herramienta {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.tipo-material {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.tipo-equipo {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.tipo-mobiliario {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.tipo-electronico {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.estado-disponible {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.estado-bajo {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.estado-agotado {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* ========== BOTONES DE ACCIONES ========== */
+.acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-icon {
+  background: transparent;
+  border: 1px solid #ddd;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover {
+  background: #148129;
+  border-color: #148129;
+  color: white;
+  transform: scale(1.1);
+}
+
+.btn-icon.btn-danger:hover {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+/* ========== SIN RESULTADOS ========== */
+.sin-resultados {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.sin-resultados i {
+  font-size: 64px;
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+.sin-resultados p {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
+/* ========== RESPONSIVE ========== */
+
+/* Tablets grandes y medianas (1200px - 768px) */
+@media (max-width: 1200px) {
+  .filtros-container {
+    grid-template-columns: 1fr 1fr;
   }
   
   .btn-limpiar {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s;
+    grid-column: 1 / -1;
+    justify-content: center;
   }
-  
-  .btn-limpiar:hover {
-    background: #5a6268;
+}
+
+/* Tablets pequeñas (768px - 640px) */
+@media (max-width: 768px) {
+  .inventario-container {
+    padding: 20px;
   }
-  
-  /* Filtros */
-  .filtros-container {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    margin-bottom: 25px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr) auto;
-    gap: 20px;
-    align-items: end;
-  }
-  
-  .filtro-grupo {
-    display: flex;
+
+  .inventario-header {
     flex-direction: column;
-    gap: 8px;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .inventario-header h1 {
+    font-size: 24px;
+    justify-content: center;
+  }
+
+  .header-buttons {
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .header-buttons a {
+    flex: 0 1 auto;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: auto;
+    justify-content: center;
+  }
+
+  .filtros-container {
+    grid-template-columns: 1fr;
+    padding: 20px;
+    gap: 15px;
+  }
+
+  /* Tabla responsive - Vista de tarjetas en móviles */
+  .tabla-wrapper {
+    overflow: visible;
   }
   
-  .filtro-grupo label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #555;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  
-  .filtro-grupo label i {
-    color: #148129;
-    font-size: 13px;
-  }
-  
-  .filtro-input {
-    padding: 10px 14px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: all 0.3s;
-  }
-  
-  .filtro-input:focus {
-    outline: none;
-    border-color: #148129;
-    box-shadow: 0 0 0 3px rgba(20, 129, 41, 0.1);
-  }
-  
-  /* Contador de resultados */
-  .resultados-info {
-    margin-bottom: 15px;
-    color: #666;
-    font-size: 14px;
-  }
-  
-  .resultados-info strong {
-    color: #148129;
-    font-weight: 600;
-  }
-  
-  /* Tabla */
   .tabla-container {
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow-x: visible;
+    box-shadow: none;
+    background: transparent;
   }
   
   .tabla-inventario {
-    width: 100%;
-    border-collapse: collapse;
+    min-width: 100%;
   }
   
   .tabla-inventario thead {
-    background: #f8f9fa;
-  }
-  
-  .tabla-inventario th {
-    padding: 15px 12px;
-    text-align: left;
-    font-size: 13px;
-    font-weight: 600;
-    color: #495057;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 2px solid #dee2e6;
+    display: none;
   }
   
   .tabla-inventario tbody tr {
-    border-bottom: 1px solid #f0f0f0;
-    transition: all 0.2s;
-  }
-  
-  .tabla-inventario tbody tr:hover {
-    background: #f8fdf9;
-  }
-  
-  .tabla-inventario td {
-    padding: 14px 12px;
-    font-size: 14px;
-    color: #333;
-  }
-  
-  .tabla-inventario td.codigo {
-    font-family: 'Courier New', monospace;
-    font-weight: 600;
-    color: #148129;
-  }
-  
-  .tabla-inventario td.nombre {
-    font-weight: 500;
-  }
-  
-  .tabla-inventario td.cantidad {
-    font-weight: 600;
-    color: #148129;
-  }
-  
-  /* Badges */
-  .badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  
-  .tipo-herramienta {
-    background: #e3f2fd;
-    color: #1976d2;
-  }
-  
-  .tipo-material {
-    background: #fff3e0;
-    color: #f57c00;
-  }
-  
-  .tipo-equipo {
-    background: #f3e5f5;
-    color: #7b1fa2;
-  }
-  
-  .tipo-mobiliario {
-    background: #e8f5e9;
-    color: #388e3c;
-  }
-  
-  .tipo-electronico {
-    background: #fce4ec;
-    color: #c2185b;
-  }
-  
-  .estado-disponible {
-    background: #e8f5e9;
-    color: #2e7d32;
-  }
-  
-  .estado-bajo {
-    background: #fff3e0;
-    color: #f57c00;
-  }
-  
-  .estado-agotado {
-    background: #ffebee;
-    color: #c62828;
-  }
-  
-  /* Botones de acciones */
-  .acciones {
-    display: flex;
-    gap: 8px;
-  }
-  
-  .btn-icon {
-    background: transparent;
+    display: block;
+    margin-bottom: 1rem;
     border: 1px solid #ddd;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    cursor: pointer;
-    color: #666;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .btn-icon:hover {
-    background: #148129;
-    border-color: #148129;
-    color: white;
-  }
-  
-  .btn-icon.btn-danger:hover {
-    background: #dc3545;
-    border-color: #dc3545;
-    color: white;
-  }
-  
-  /* Sin resultados */
-  .sin-resultados {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    background: white;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
   
-  .sin-resultados i {
-    font-size: 64px;
-    color: #ccc;
-    margin-bottom: 16px;
+  .tabla-inventario tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: right;
   }
   
-  .sin-resultados p {
-    font-size: 16px;
-    color: #666;
-    margin: 0;
+  .tabla-inventario tbody td:last-child {
+    border-bottom: none;
   }
   
-  /* Responsive */
-  @media (max-width: 1200px) {
-    .filtros-container {
-      grid-template-columns: 1fr 1fr;
-    }
-    
-    .btn-limpiar {
-      grid-column: 1 / -1;
-    }
+  .tabla-inventario tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-align: left;
+    flex: 1;
+    color: #333;
+    font-size: 0.85rem;
   }
   
-  @media (max-width: 768px) {
-    .filtros-container {
-      grid-template-columns: 1fr;
-    }
-    
-    .inventario-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 15px;
-    }
-    
-    .tabla-container {
-      overflow-x: auto;
-    }
+  .tabla-inventario tbody td .badge {
+    margin-left: auto;
   }
+  
+  .acciones {
+    justify-content: flex-end;
+    width: 100%;
+  }
+  
+  .acciones::before {
+    flex: 1 1 100%;
+    margin-bottom: 8px;
+  }
+}
+
+/* Móviles muy pequeños (<480px) */
+@media (max-width: 480px) {
+  .inventario-container {
+    padding: 15px;
+  }
+
+  .inventario-header h1 {
+    font-size: 20px;
+  }
+
+  .header-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .header-buttons a {
+    width: 100%;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    font-size: 14px;
+    padding: 10px 18px;
+  }
+
+  .filtros-container {
+    padding: 15px;
+  }
+
+  .filtro-grupo label {
+    font-size: 13px;
+  }
+
+  .filtro-input {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+
+  .tabla-inventario tbody td {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .tabla-inventario tbody td::before {
+    margin-bottom: 4px;
+  }
+}
