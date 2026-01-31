@@ -16,12 +16,19 @@ urlpatterns = [
     
     # Pedido de compra
     path('pedidos-compra/', views.PedidosCompra, name='PedidosCompra'),
-    path('crear-pedido-compra/', views.CrearPedidoCompra, name='CrearPedidoCompra'),  # NUEVO
-    path('generar-pdf-pedido/', views.GenerarPDFPedido, name='GenerarPDFPedido'),      # NUEVO
+    path('crear-pedido-compra/', views.CrearPedidoCompra, name='CrearPedidoCompra'),
+    path('generar-pdf-pedido/', views.GenerarPDFPedido, name='GenerarPDFPedido'),
     path('detalle-pedido-compra/<int:id_pedido>/', views.DetallePedido, name='DetallePedido'),
     path('editar-pedido-compra/<int:id_pedido>/', views.EditarPedido, name='EditarPedido'),
     path('eliminar-pedido-compra/<int:id_pedido>/', views.EliminarPedido, name='EliminarPedido'),
     path('api/ultimo-producto/', views.api_ultimo_producto, name='api_ultimo_producto'),
+    
+    # Items del pedido (NUEVO - para editar la tabla de productos)
+    path('pedidos-compra/<int:id_pedido>/agregar-item/', views.AgregarItemPedido, name='AgregarItemPedido'),
+    path('pedidos-compra/<int:id_pedido>/editar-item/', views.EditarItemPedido, name='EditarItemPedido'),
+    path('pedidos-compra/item/<int:item_id>/obtener/', views.ObtenerItemPedido, name='ObtenerItemPedido'),
+    path('pedidos-compra/item/<int:item_id>/eliminar/', views.EliminarItemPedido, name='EliminarItemPedido'),
+    
     # Cotizaciones
     path('cotizaciones-pedido/<int:id_pedido>/', views.CotizacionesPedido, name='CotizacionesPedido'),
     path('agregar-cotizacion/<int:id_pedido>/', views.AgregarCotizacion, name='AgregarCotizacion'),

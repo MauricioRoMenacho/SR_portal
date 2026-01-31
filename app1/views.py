@@ -648,26 +648,42 @@ def DetallePedido(request, id_pedido):
 
 # ========== EDITAR PEDIDO ==========
 def EditarPedido(request, id_pedido):
+    """Vista para editar un pedido de compra existente"""
     pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    productos = ProductoAlmacen.objects.all().order_by('nombre')
     
     if request.method == 'POST':
-        nombre = request.POST.get('nombre')
-        descripcion = request.POST.get('descripcion', '')
+        # Obtener datos del formulario
+        nombre = request.POST.get('nombre', '').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+        estado = request.POST.get('estado', '').strip()
         archivo = request.FILES.get('archivo')
         
+        # Validaciones
         if not nombre:
             messages.error(request, 'El nombre del pedido es obligatorio')
             return redirect('EditarPedido', id_pedido=id_pedido)
         
+        if not estado:
+            messages.error(request, 'El estado es obligatorio')
+            return redirect('EditarPedido', id_pedido=id_pedido)
+        
+        # Actualizar campos del pedido
         pedido.nombre = nombre
         pedido.descripcion = descripcion
+        pedido.estado = estado
         
+        # Solo actualizar el archivo si se subió uno nuevo
         if archivo:
-            extension = archivo.name.split('.')[-1].lower()
-            tipos_permitidos = ['pdf', 'doc', 'docx']
+            # Validar tamaño (10MB máximo)
+            if archivo.size > 10 * 1024 * 1024:
+                messages.error(request, 'El archivo es demasiado grande. Máximo 10MB permitido.')
+                return redirect('EditarPedido', id_pedido=id_pedido)
             
-            if extension not in tipos_permitidos:
-                messages.error(request, 'Solo se permiten archivos PDF o Word')
+            # Validar extensión
+            extension = archivo.name.split('.')[-1].lower()
+            if extension not in ['pdf', 'doc', 'docx']:
+                messages.error(request, 'Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.')
                 return redirect('EditarPedido', id_pedido=id_pedido)
             
             pedido.archivo = archivo
@@ -675,35 +691,118 @@ def EditarPedido(request, id_pedido):
         try:
             pedido.save()
             messages.success(request, f'Pedido "{pedido.nombre}" actualizado exitosamente')
-            return redirect('PedidosCompra')
+            return redirect('EditarPedido', id_pedido=id_pedido)
         except Exception as e:
             messages.error(request, f'Error al actualizar el pedido: {str(e)}')
             return redirect('EditarPedido', id_pedido=id_pedido)
     
     context = {
         'pedido': pedido,
+        'productos': productos,
     }
     return render(request, 'almacenes/almgeneral/EditarPedido.html', context)
 
 
-# ========== ELIMINAR PEDIDO ==========
-def EliminarPedido(request, id_pedido):
-    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
-    
+def AgregarItemPedido(request, id_pedido):
+    """Agregar un item/producto al pedido"""
     if request.method == 'POST':
-        nombre = pedido.nombre
+        pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+        
+        producto_id = request.POST.get('producto_id')
+        cantidad = request.POST.get('cantidad')
+        precio_unitario = request.POST.get('precio_unitario')
+        observaciones = request.POST.get('observaciones', '').strip()
+        
         try:
-            pedido.delete()
-            messages.success(request, f'Pedido "{nombre}" eliminado exitosamente')
+            producto = ProductoAlmacen.objects.get(id_producto=producto_id)
+            
+            ItemPedido.objects.create(
+                pedido=pedido,
+                producto=producto,
+                cantidad_solicitada=int(cantidad),
+                precio_unitario=float(precio_unitario),
+                observaciones=observaciones
+            )
+            
+            messages.success(request, f'Producto "{producto.nombre}" agregado al pedido')
         except Exception as e:
-            messages.error(request, f'Error al eliminar el pedido: {str(e)}')
-        return redirect('PedidosCompra')
-    
-    context = {
-        'pedido': pedido,
-    }
-    return render(request, 'almacenes/almgeneral/EliminarPedido.html', context)
+            messages.error(request, f'Error al agregar el producto: {str(e)}')
+        
+        return redirect('EditarPedido', id_pedido=id_pedido)
 
+
+def EditarItemPedido(request, id_pedido):
+    """Editar un item del pedido"""
+    if request.method == 'POST':
+        item_id = request.POST.get('item_id')
+        item = get_object_or_404(ItemPedido, id_item=item_id)
+        
+        producto_id = request.POST.get('producto_id')
+        cantidad = request.POST.get('cantidad')
+        precio_unitario = request.POST.get('precio_unitario')
+        observaciones = request.POST.get('observaciones', '').strip()
+        
+        try:
+            producto = ProductoAlmacen.objects.get(id_producto=producto_id)
+            
+            item.producto = producto
+            item.cantidad_solicitada = int(cantidad)
+            item.precio_unitario = float(precio_unitario)
+            item.observaciones = observaciones
+            item.save()
+            
+            messages.success(request, f'Producto "{producto.nombre}" actualizado')
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el producto: {str(e)}')
+        
+        return redirect('EditarPedido', id_pedido=id_pedido)
+
+
+def ObtenerItemPedido(request, item_id):
+    """Obtener datos de un item para edición (AJAX)"""
+    try:
+        item = ItemPedido.objects.get(id_item=item_id)
+        data = {
+            'producto_id': item.producto.id_producto,
+            'cantidad': item.cantidad_solicitada,
+            'precio_unitario': str(item.precio_unitario),
+            'observaciones': item.observaciones or '',
+        }
+        return JsonResponse(data)
+    except ItemPedido.DoesNotExist:
+        return JsonResponse({'error': 'Item no encontrado'}, status=404)
+
+
+@require_POST
+def EliminarItemPedido(request, item_id):
+    """Eliminar un item del pedido"""
+    try:
+        item = ItemPedido.objects.get(id_item=item_id)
+        item.delete()
+        return JsonResponse({'success': True})
+    except ItemPedido.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Item no encontrado'}, status=404)
+@require_POST
+def EliminarPedido(request, id_pedido):
+    """Eliminar un pedido de compra"""
+    try:
+        pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+        nombre_pedido = pedido.nombre
+        pedido.delete()
+        
+        # Si es petición AJAX
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True, 'message': f'Pedido "{nombre_pedido}" eliminado'})
+        
+        # Si es petición normal
+        messages.success(request, f'Pedido "{nombre_pedido}" eliminado exitosamente')
+        return redirect('PedidosCompra')
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        
+        messages.error(request, f'Error al eliminar el pedido: {str(e)}')
+        return redirect('PedidosCompra')
 
 # ========== VER COTIZACIONES DEL PEDIDO ==========
 def CotizacionesPedido(request, id_pedido):
