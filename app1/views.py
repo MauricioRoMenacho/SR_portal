@@ -418,6 +418,7 @@ from .models import (
     Cotizacion,
     MovimientoInventario
 )
+from django.views.decorators.http import require_http_methods
 
 
 # ========== VISTA PRINCIPAL: LISTA DE PEDIDOS ==========
@@ -493,7 +494,7 @@ def CrearPedidoCompra(request):
     context = {
         'productos': productos,
     }
-    return render(request, 'almacenes/almgeneral/CrearPedidoCompra.html', context)
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/CrearPedidoCompra.html', context)
 
 
 # ========== GENERAR PDF DEL PEDIDO ==========
@@ -643,7 +644,7 @@ def DetallePedido(request, id_pedido):
         'items': items,
         'total_items': items.count(),
     }
-    return render(request, 'almacenes/almgeneral/DetallePedido.html', context)
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/DetallePedido.html', context)
 
 
 # ========== EDITAR PEDIDO ==========
@@ -700,7 +701,7 @@ def EditarPedido(request, id_pedido):
         'pedido': pedido,
         'productos': productos,
     }
-    return render(request, 'almacenes/almgeneral/EditarPedido.html', context)
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/EditarPedido.html', context)
 
 
 def AgregarItemPedido(request, id_pedido):
@@ -782,28 +783,38 @@ def EliminarItemPedido(request, item_id):
         return JsonResponse({'success': True})
     except ItemPedido.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Item no encontrado'}, status=404)
-@require_POST
+    
+@require_http_methods(["GET", "POST"])
 def EliminarPedido(request, id_pedido):
     """Eliminar un pedido de compra"""
-    try:
-        pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
-        nombre_pedido = pedido.nombre
-        pedido.delete()
-        
-        # Si es petición AJAX
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True, 'message': f'Pedido "{nombre_pedido}" eliminado'})
-        
-        # Si es petición normal
-        messages.success(request, f'Pedido "{nombre_pedido}" eliminado exitosamente')
-        return redirect('PedidosCompra')
-    except Exception as e:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
-        
-        messages.error(request, f'Error al eliminar el pedido: {str(e)}')
-        return redirect('PedidosCompra')
-
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    
+    # Calcular total de cotizaciones
+    pedido.total_cotizaciones = pedido.cotizaciones.count()
+    
+    if request.method == 'POST':
+        try:
+            nombre_pedido = pedido.nombre
+            pedido.delete()
+            
+            # Si es petición AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': f'Pedido "{nombre_pedido}" eliminado'})
+            
+            # Si es petición normal
+            messages.success(request, f'Pedido "{nombre_pedido}" eliminado exitosamente')
+            return redirect('PedidosCompra')
+        except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': str(e)}, status=400)
+            
+            messages.error(request, f'Error al eliminar el pedido: {str(e)}')
+            return redirect('PedidosCompra')
+    
+    # GET request - mostrar página de confirmación
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/Eliminarpedido.html', {
+        'pedido': pedido
+    })
 # ========== VER COTIZACIONES DEL PEDIDO ==========
 def CotizacionesPedido(request, id_pedido):
     pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
@@ -814,7 +825,7 @@ def CotizacionesPedido(request, id_pedido):
         'cotizaciones': cotizaciones,
         'total_cotizaciones': cotizaciones.count()
     }
-    return render(request, 'almacenes/almgeneral/CotizacionesPedido.html', context)
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/CotizacionesPedido.html', context)
 
 
 # ========== AGREGAR COTIZACIÓN ==========
@@ -863,7 +874,7 @@ def AgregarCotizacion(request, id_pedido):
     context = {
         'pedido': pedido,
     }
-    return render(request, 'almacenes/almgeneral/AgregarCotizacion.html', context)
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/AgregarCotizacion.html', context)
 
 
 # ========== SELECCIONAR COTIZACIÓN GANADORA ==========
@@ -889,7 +900,7 @@ def SeleccionarCotizacion(request, id_cotizacion):
         'cotizacion': cotizacion,
         'pedido': pedido,
     }
-    return render(request, 'almacenes/almgeneral/SeleccionarCotizacion.html', context)
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/SeleccionarCotizacion.html', context)
 
 
 # ========== MARCAR COMO ENTREGADO ==========
@@ -929,7 +940,7 @@ def MarcarEntregado(request, id_pedido):
     context = {
         'pedido': pedido,
     }
-    return render(request, 'almacenes/almgeneral/MarcarEntregado.html', context)
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/MarcarEntregado.html', context)
 
 
 # ========== VER DOCUMENTO ==========
