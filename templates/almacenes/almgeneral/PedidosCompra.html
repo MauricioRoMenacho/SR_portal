@@ -339,6 +339,123 @@ setTimeout(() => {
   gap: 5px;
 }
 
+/* ========== FILTROS MEJORADOS (SIN SOBREPOSICIÓN) ========== */
+.filtros-container {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr auto;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  align-items: end;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0; /* Importante para evitar overflow */
+}
+
+.filtro-grupo label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #333;
+  white-space: nowrap;
+}
+
+.filtro-grupo label i {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.filtro-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  background: white;
+  box-sizing: border-box;
+}
+
+.filtro-input:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.btn-limpiar {
+  padding: 0.625rem 1.25rem;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  height: fit-content;
+}
+
+.btn-limpiar:hover {
+  background: #e0e0e0;
+  border-color: #bbb;
+}
+
+.btn-limpiar i {
+  font-size: 0.875rem;
+}
+
+/* ========== RESPONSIVE PARA FILTROS ========== */
+
+/* Tablets grandes */
+@media screen and (max-width: 1400px) {
+  .filtros-container {
+    grid-template-columns: 1.5fr 1fr 1fr 1fr auto;
+    gap: 0.875rem;
+  }
+}
+
+/* Tablets */
+@media screen and (max-width: 1024px) {
+  .filtros-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  
+  .btn-limpiar {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+}
+
+/* Móviles */
+@media screen and (max-width: 768px) {
+  .filtros-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .filtro-grupo label {
+    font-size: 0.8rem;
+  }
+  
+  .filtro-input {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
 /* ========== TABLA RESPONSIVE ========== */
 .tabla-wrapper {
   width: 100%;
@@ -350,12 +467,45 @@ setTimeout(() => {
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .tabla-pedidos {
   width: 100%;
-  min-width: 1200px; /* Ancho mínimo para que se vea bien */
+  min-width: 1200px;
   border-collapse: collapse;
+}
+
+.tabla-pedidos thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tabla-pedidos th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tabla-pedidos tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+}
+
+.tabla-pedidos tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.tabla-pedidos td {
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #555;
 }
 
 /* Ajustes para tablets */
@@ -379,6 +529,8 @@ setTimeout(() => {
   
   .tabla-container {
     overflow-x: visible;
+    box-shadow: none;
+    background: transparent;
   }
   
   .tabla-pedidos {
@@ -393,9 +545,9 @@ setTimeout(() => {
     display: block;
     margin-bottom: 1rem;
     border: 1px solid #ddd;
-    border-radius: 8px;
+    border-radius: 12px;
     background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
   
   .tabla-pedidos tbody td {
@@ -413,10 +565,11 @@ setTimeout(() => {
   
   .tabla-pedidos tbody td::before {
     content: attr(data-label);
-    font-weight: bold;
+    font-weight: 600;
     text-align: left;
     flex: 1;
     color: #333;
+    font-size: 0.85rem;
   }
   
   .tabla-pedidos tbody td .badge {
@@ -450,13 +603,10 @@ setTimeout(() => {
     font-size: 1.5rem;
   }
   
-  .filtros-container {
-    grid-template-columns: 1fr;
-  }
-  
   .tabla-pedidos tbody td {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.5rem;
   }
   
   .tabla-pedidos tbody td::before {
@@ -464,6 +614,32 @@ setTimeout(() => {
   }
   
   .acciones {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ========== HEADER RESPONSIVE ========== */
+.pedidos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+@media screen and (max-width: 640px) {
+  .pedidos-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .pedidos-header h1 {
+    text-align: center;
+  }
+  
+  .btn-primary {
     width: 100%;
     justify-content: center;
   }
