@@ -18,12 +18,6 @@ def almacenes(request):
 
 def InventrioAG(request):
     productos = ProductoAlmacen.objects.filter(ubicacion_almacen='AG').order_by('-fecha_ingreso')
-    
-    # DEBUG: Ver en consola cuántos productos hay
-    print(f"Productos encontrados: {productos.count()}")
-    for p in productos:
-        print(f"- {p.nombre} ({p.ubicacion_almacen})")
-    
     context = {
         'productos': productos,
         'total_productos': productos.count()
