@@ -16,10 +16,12 @@ urlpatterns = [
     
     # Pedido de compra
     path('pedidos-compra/', views.PedidosCompra, name='PedidosCompra'),
+    path('crear-pedido-compra/', views.CrearPedidoCompra, name='CrearPedidoCompra'),  # NUEVO
+    path('generar-pdf-pedido/', views.GenerarPDFPedido, name='GenerarPDFPedido'),      # NUEVO
     path('detalle-pedido-compra/<int:id_pedido>/', views.DetallePedido, name='DetallePedido'),
     path('editar-pedido-compra/<int:id_pedido>/', views.EditarPedido, name='EditarPedido'),
     path('eliminar-pedido-compra/<int:id_pedido>/', views.EliminarPedido, name='EliminarPedido'),
-    
+    path('api/ultimo-producto/', views.api_ultimo_producto, name='api_ultimo_producto'),
     # Cotizaciones
     path('cotizaciones-pedido/<int:id_pedido>/', views.CotizacionesPedido, name='CotizacionesPedido'),
     path('agregar-cotizacion/<int:id_pedido>/', views.AgregarCotizacion, name='AgregarCotizacion'),

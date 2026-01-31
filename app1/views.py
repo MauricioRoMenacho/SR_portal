@@ -393,46 +393,35 @@ def descargar_plantilla(request):
     wb.save(response)
     
     return response
-
+import os
+import json
+import mimetypes
+from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.utils import timezone
-from .models import PedidoCompra, Cotizacion
+from django.http import FileResponse, Http404, HttpResponse
+from django.views.decorators.clickjacking import xframe_options_exempt
+from django.views.decorators.cache import cache_control
+from django.views.decorators.csrf import csrf_exempt
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from .models import (
+    ProductoAlmacen, 
+    Unidad, 
+    PedidoCompra, 
+    ItemPedido, 
+    Cotizacion,
+    MovimientoInventario
+)
+
 
 # ========== VISTA PRINCIPAL: LISTA DE PEDIDOS ==========
 def PedidosCompra(request):
-    if request.method == 'POST':
-        nombre = request.POST.get('nombre')
-        descripcion = request.POST.get('descripcion', '')
-        archivo = request.FILES.get('archivo')
-        
-        if not nombre:
-            messages.error(request, 'El nombre del pedido es obligatorio')
-            return redirect('PedidosCompra')
-        
-        if not archivo:
-            messages.error(request, 'Debes subir un archivo PDF o Word')
-            return redirect('PedidosCompra')
-        
-        extension = archivo.name.split('.')[-1].lower()
-        tipos_permitidos = ['pdf', 'doc', 'docx']
-        
-        if extension not in tipos_permitidos:
-            messages.error(request, 'Solo se permiten archivos PDF o Word (.pdf, .doc, .docx)')
-            return redirect('PedidosCompra')
-        
-        try:
-            pedido = PedidoCompra.objects.create(
-                nombre=nombre,
-                descripcion=descripcion,
-                archivo=archivo
-            )
-            messages.success(request, f'Pedido "{pedido.nombre}" creado exitosamente')
-            return redirect('PedidosCompra')
-        except Exception as e:
-            messages.error(request, f'Error al crear el pedido: {str(e)}')
-            return redirect('PedidosCompra')
-    
     pedidos = PedidoCompra.objects.all()
     context = {
         'pedidos': pedidos,
@@ -440,11 +429,219 @@ def PedidosCompra(request):
     }
     return render(request, 'almacenes/almgeneral/PedidosCompra.html', context)
 
+
+# ========== CREAR NUEVO PEDIDO (WIZARD) ==========
+def CrearPedidoCompra(request):
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        descripcion = request.POST.get('descripcion', '')
+        archivo = request.FILES.get('archivo')  # Ahora es opcional
+        productos_json = request.POST.get('productos_json')
+        
+        if not nombre:
+            messages.error(request, 'El nombre del pedido es obligatorio')
+            return redirect('CrearPedidoCompra')
+        
+        if not productos_json:
+            messages.error(request, 'Debes seleccionar al menos un producto')
+            return redirect('CrearPedidoCompra')
+        
+        try:
+            # Parsear productos
+            productos = json.loads(productos_json)
+            
+            if len(productos) == 0:
+                messages.error(request, 'Debes seleccionar al menos un producto')
+                return redirect('CrearPedidoCompra')
+            
+            # Validar archivo si se subió
+            if archivo:
+                extension = archivo.name.split('.')[-1].lower()
+                tipos_permitidos = ['pdf', 'doc', 'docx']
+                
+                if extension not in tipos_permitidos:
+                    messages.error(request, 'Solo se permiten archivos PDF o Word (.pdf, .doc, .docx)')
+                    return redirect('CrearPedidoCompra')
+            
+            # Crear pedido
+            pedido = PedidoCompra.objects.create(
+                nombre=nombre,
+                descripcion=descripcion,
+                archivo=archivo if archivo else None
+            )
+            
+            # Crear items del pedido
+            for producto_data in productos:
+                producto = ProductoAlmacen.objects.get(id_producto=producto_data['id'])
+                ItemPedido.objects.create(
+                    pedido=pedido,
+                    producto=producto,
+                    cantidad_solicitada=producto_data['cantidad'],
+                    precio_unitario=producto_data['precio'],
+                    observaciones=''
+                )
+            
+            messages.success(request, f'Pedido "{pedido.nombre}" creado exitosamente con {len(productos)} productos')
+            return redirect('PedidosCompra')
+            
+        except Exception as e:
+            messages.error(request, f'Error al crear el pedido: {str(e)}')
+            return redirect('CrearPedidoCompra')
+    
+    # GET request
+    productos = ProductoAlmacen.objects.all().order_by('nombre')
+    context = {
+        'productos': productos,
+    }
+    return render(request, 'almacenes/almgeneral/CrearPedidoCompra.html', context)
+
+
+# ========== GENERAR PDF DEL PEDIDO ==========
+def GenerarPDFPedido(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.POST.get('data'))
+            nombre = data.get('nombre', 'Pedido de Compra')
+            descripcion = data.get('descripcion', '')
+            productos = data.get('productos', [])
+            
+            # Crear respuesta HTTP
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Pedido_{nombre.replace(" ", "_")}.pdf"'
+            
+            # Crear PDF
+            doc = SimpleDocTemplate(response, pagesize=letter)
+            elements = []
+            styles = getSampleStyleSheet()
+            
+            # Estilo personalizado para el título
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=20,
+                textColor=colors.HexColor('#148129'),
+                spaceAfter=30,
+                alignment=TA_CENTER
+            )
+            
+            # Título
+            title = Paragraph(f"PEDIDO DE COMPRA", title_style)
+            elements.append(title)
+            
+            # Información del pedido
+            info_data = [
+                ['Nombre del Pedido:', nombre],
+                ['Fecha de Generación:', datetime.now().strftime('%d/%m/%Y %H:%M')],
+                ['Descripción:', descripcion if descripcion else 'Sin descripción'],
+            ]
+            
+            info_table = Table(info_data, colWidths=[2*inch, 4.5*inch])
+            info_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f5f5f5')),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ]))
+            
+            elements.append(info_table)
+            elements.append(Spacer(1, 20))
+            
+            # Título de tabla de productos
+            subtitle = Paragraph("PRODUCTOS SOLICITADOS", styles['Heading2'])
+            elements.append(subtitle)
+            elements.append(Spacer(1, 10))
+            
+            # Tabla de productos
+            table_data = [
+                ['N°', 'Código', 'Producto', 'Cantidad', 'Unidad', 'Precio Unit.', 'Subtotal']
+            ]
+            
+            total_general = 0
+            
+            for i, producto in enumerate(productos, 1):
+                subtotal = producto['cantidad'] * producto['precio']
+                total_general += subtotal
+                
+                table_data.append([
+                    str(i),
+                    producto['codigo'],
+                    producto['nombre'],
+                    str(producto['cantidad']),
+                    producto['unidad'],
+                    f"S/. {producto['precio']:.2f}",
+                    f"S/. {subtotal:.2f}"
+                ])
+            
+            # Agregar fila de total
+            table_data.append([
+                '', '', '', '', '', 'TOTAL:', f"S/. {total_general:.2f}"
+            ])
+            
+            products_table = Table(table_data, colWidths=[0.4*inch, 1*inch, 2.5*inch, 0.8*inch, 0.8*inch, 1*inch, 1*inch])
+            products_table.setStyle(TableStyle([
+                # Header
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#148129')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                
+                # Body
+                ('TEXTCOLOR', (0, 1), (-1, -2), colors.black),
+                ('ALIGN', (0, 1), (0, -2), 'CENTER'),  # N°
+                ('ALIGN', (1, 1), (1, -2), 'LEFT'),    # Código
+                ('ALIGN', (2, 1), (2, -2), 'LEFT'),    # Producto
+                ('ALIGN', (3, 1), (3, -2), 'CENTER'),  # Cantidad
+                ('ALIGN', (4, 1), (4, -2), 'CENTER'),  # Unidad
+                ('ALIGN', (5, 1), (-1, -2), 'RIGHT'),  # Precios
+                ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -2), 9),
+                
+                # Total row
+                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f5f5f5')),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, -1), (-1, -1), 11),
+                ('ALIGN', (0, -1), (-2, -1), 'RIGHT'),
+                ('ALIGN', (-1, -1), (-1, -1), 'RIGHT'),
+                
+                # Grid
+                ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            
+            elements.append(products_table)
+            elements.append(Spacer(1, 30))
+            
+            # Footer
+            footer_text = f"Total de productos: {len(productos)} | Total general: S/. {total_general:.2f}"
+            footer = Paragraph(footer_text, styles['Normal'])
+            elements.append(footer)
+            
+            # Generar PDF
+            doc.build(elements)
+            
+            return response
+            
+        except Exception as e:
+            messages.error(request, f'Error al generar PDF: {str(e)}')
+            return redirect('CrearPedidoCompra')
+    
+    return redirect('CrearPedidoCompra')
+
+
 # ========== VER DETALLES DEL PEDIDO ==========
 def DetallePedido(request, id_pedido):
     pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    items = pedido.items.all()
+    
     context = {
         'pedido': pedido,
+        'items': items,
+        'total_items': items.count(),
     }
     return render(request, 'almacenes/almgeneral/DetallePedido.html', context)
 
@@ -465,7 +662,6 @@ def EditarPedido(request, id_pedido):
         pedido.nombre = nombre
         pedido.descripcion = descripcion
         
-        # Si se sube nuevo archivo, reemplazarlo
         if archivo:
             extension = archivo.name.split('.')[-1].lower()
             tipos_permitidos = ['pdf', 'doc', 'docx']
@@ -578,14 +774,9 @@ def SeleccionarCotizacion(request, id_cotizacion):
     
     if request.method == 'POST':
         try:
-            # Marcar todas las otras cotizaciones como rechazadas
             pedido.cotizaciones.exclude(id_cotizacion=id_cotizacion).update(estado='RECH')
-            
-            # Marcar esta cotización como seleccionada
             cotizacion.estado = 'SELEC'
             cotizacion.save()
-            
-            # Cambiar estado del pedido a COMPLETADO
             pedido.estado = 'COMP'
             pedido.save()
             
@@ -606,7 +797,6 @@ def SeleccionarCotizacion(request, id_cotizacion):
 def MarcarEntregado(request, id_pedido):
     pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
     
-    # Validar que el pedido esté en estado COMPLETADO
     if pedido.estado != 'COMP':
         messages.error(request, 'Solo puedes marcar como entregado pedidos que están COMPLETADOS')
         return redirect('CotizacionesPedido', id_pedido=id_pedido)
@@ -642,19 +832,12 @@ def MarcarEntregado(request, id_pedido):
     }
     return render(request, 'almacenes/almgeneral/MarcarEntregado.html', context)
 
-import os
-import mimetypes
-from django.shortcuts import get_object_or_404
-from django.http import FileResponse, Http404
-from django.views.decorators.clickjacking import xframe_options_exempt
-from django.views.decorators.cache import cache_control
 
+# ========== VER DOCUMENTO ==========
 @xframe_options_exempt
 @cache_control(max_age=3600, public=True)
 def ver_documento(request, cotizacion_id):
     """Vista para servir documentos sin servicios externos"""
-    from .models import Cotizacion
-    
     cotizacion = get_object_or_404(Cotizacion, id_cotizacion=cotizacion_id)
     
     if not cotizacion.documento:
@@ -688,3 +871,90 @@ def ver_documento(request, cotizacion_id):
         return response
     except Exception as e:
         raise Http404(f"Error: {str(e)}")
+
+
+# ========== AGREGAR PRODUCTO (REUTILIZADO) ==========
+def agregar_producto(request):
+    if request.method == 'POST':
+        try:
+            unidad_nombre = request.POST.get('unidad')
+            unidad = Unidad.objects.get(nombre=unidad_nombre)
+            
+            producto = ProductoAlmacen.objects.create(
+                nombre=request.POST.get('nombre'),
+                descripcion=request.POST.get('descripcion'),
+                ubicacion_almacen=request.POST.get('ubicacion_almacen'),
+                estante=request.POST.get('estante'),
+                cantidad=request.POST.get('cantidad'),
+                unidad=unidad,
+                estado=request.POST.get('estado'),
+                observaciones=request.POST.get('observaciones', '')
+            )
+            
+            messages.success(request, f'Producto "{producto.nombre}" agregado exitosamente')
+            return redirect('InventarioAG')
+            
+        except Exception as e:
+            messages.error(request, f'Error al agregar producto: {str(e)}')
+    
+    unidades = Unidad.objects.all().order_by('nombre')
+    context = {
+        'unidades': unidades
+    }
+    return render(request, 'almacenes/almgeneral/agregar_producto.html', context)
+
+
+# ========== CREAR UNIDAD (AJAX) ==========
+@csrf_exempt
+def crear_unidad(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            nombre = data.get('nombre')
+            abreviatura = data.get('abreviatura', '')
+            
+            if not nombre:
+                return JsonResponse({'success': False, 'error': 'El nombre es obligatorio'})
+            
+            if Unidad.objects.filter(nombre=nombre).exists():
+                return JsonResponse({'success': False, 'error': 'Esta unidad ya existe'})
+            
+            unidad = Unidad.objects.create(
+                nombre=nombre,
+                abreviatura=abreviatura
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'unidad': {
+                    'nombre': unidad.nombre,
+                    'abreviatura': unidad.abreviatura
+                }
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+def api_ultimo_producto(request):
+    """API para obtener el último producto creado"""
+    try:
+        ultimo_producto = ProductoAlmacen.objects.latest('id_producto')
+        
+        data = {
+            'id_producto': ultimo_producto.id_producto,
+            'codigo_producto': ultimo_producto.codigo_producto,
+            'nombre': ultimo_producto.nombre,
+            'cantidad': ultimo_producto.cantidad,
+            'unidad': ultimo_producto.unidad.nombre if ultimo_producto.unidad else '',
+            'descripcion': ultimo_producto.descripcion,
+        }
+        
+        return JsonResponse(data)
+        
+    except ProductoAlmacen.DoesNotExist:
+        return JsonResponse({'error': 'No hay productos'}, status=404)
+
+
+# ===== AGREGAR ESTA RUTA A urls.py =====

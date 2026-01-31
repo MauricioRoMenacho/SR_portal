@@ -29,10 +29,10 @@
       <i class="fa-solid fa-clipboard-list"></i>
       Pedidos de Compra
     </h1>
-    <button class="btn-primary" onclick="abrirModalNuevoPedido()">
+    <a href="{% url 'CrearPedidoCompra' %}" class="btn-primary">
       <i class="fa-solid fa-plus"></i>
       Nuevo Pedido de Compra
-    </button>
+    </a>
   </div>
 
   <!-- Filtros -->
@@ -108,6 +108,7 @@
           <th>Código</th>
           <th>Nombre</th>
           <th>Descripción</th>
+          <th>Productos</th>
           <th>Archivo</th>
           <th>Estado</th>
           <th>Fecha Creación</th>
@@ -119,7 +120,7 @@
         
         {% for pedido in pedidos %}
         <tr data-nombre="{{ pedido.nombre|lower }}" 
-            data-codigo="{{ pedido.codigo|lower }}"
+            data-codigo="{{ pedido.id_pedido }}"
             data-estado="{{ pedido.estado }}"
             data-fecha="{{ pedido.fecha_creacion|date:'Y-m-d' }}">
           
@@ -128,6 +129,12 @@
           </td>
           <td class="nombre">{{ pedido.nombre }}</td>
           <td class="descripcion">{{ pedido.descripcion|truncatewords:8 }}</td>
+          <td class="text-center">
+            <span class="badge badge-info">
+              <i class="fa-solid fa-boxes-stacked"></i>
+              {{ pedido.total_items }} productos
+            </span>
+          </td>
           <td class="archivo-cell">
             {% if pedido.archivo %}
             <a href="{{ pedido.archivo.url }}" target="_blank" class="archivo-link" title="Descargar archivo">
@@ -188,7 +195,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="8" style="text-align: center; padding: 3rem; color: #666;">
+          <td colspan="9" style="text-align: center; padding: 3rem; color: #666;">
             <i class="fa-solid fa-inbox" style="font-size: 48px; margin-bottom: 1rem; display: block; color: #ccc;"></i>
             No hay pedidos de compra registrados
           </td>
@@ -209,93 +216,6 @@
     </button>
   </div>
 
-</div>
-
-<!-- Modal: Nuevo Pedido de Compra -->
-<div class="modal-overlay" id="modalNuevoPedido">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>
-        <i class="fa-solid fa-plus-circle"></i>
-        Nuevo Pedido de Compra
-      </h2>
-      <button class="btn-close" onclick="cerrarModalNuevoPedido()">
-        <i class="fa-solid fa-times"></i>
-      </button>
-    </div>
-    
-    <form method="POST" action="{% url 'PedidosCompra' %}" enctype="multipart/form-data" id="formNuevoPedido">
-      {% csrf_token %}
-      
-      <div class="modal-body">
-        
-        <div class="form-group">
-          <label>
-            <i class="fa-solid fa-tag"></i>
-            Nombre del Pedido *
-          </label>
-          <input 
-            type="text" 
-            name="nombre" 
-            id="nombrePedido"
-            class="form-input" 
-            placeholder="Ej: Equipamiento Deportivo 2025"
-            required
-          >
-        </div>
-
-        <div class="form-group">
-          <label>
-            <i class="fa-solid fa-align-left"></i>
-            Descripción
-          </label>
-          <textarea 
-            name="descripcion" 
-            class="form-input" 
-            rows="4"
-            placeholder="Describe brevemente el pedido de compra..."
-          ></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>
-            <i class="fa-solid fa-file-upload"></i>
-            Archivo del Pedido (PDF o Word) *
-          </label>
-          <div class="file-upload-wrapper">
-            <input 
-              type="file" 
-              name="archivo" 
-              id="archivoInput"
-              class="file-input" 
-              accept=".pdf,.doc,.docx"
-              required
-            >
-            <label for="archivoInput" class="file-label">
-              <i class="fa-solid fa-cloud-upload-alt"></i>
-              <span id="fileNameDisplay">Seleccionar archivo PDF o Word</span>
-            </label>
-          </div>
-          <small class="file-hint">
-            <i class="fa-solid fa-info-circle"></i>
-            Formatos permitidos: PDF, DOC, DOCX (Máx. 10MB)
-          </small>
-        </div>
-
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" onclick="cerrarModalNuevoPedido()">
-          <i class="fa-solid fa-times"></i>
-          Cancelar
-        </button>
-        <button type="submit" class="btn-primary" id="btnSubmit">
-          <i class="fa-solid fa-save"></i>
-          Crear Pedido
-        </button>
-      </div>
-    </form>
-  </div>
 </div>
 
 <script>
@@ -364,84 +284,6 @@ function limpiarFiltros() {
   filtrarTabla();
 }
 
-// ========== MODAL ==========
-function abrirModalNuevoPedido() {
-  document.getElementById('modalNuevoPedido').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function cerrarModalNuevoPedido() {
-  document.getElementById('modalNuevoPedido').classList.remove('show');
-  document.body.style.overflow = 'auto';
-  document.getElementById('formNuevoPedido').reset();
-  document.getElementById('fileNameDisplay').textContent = 'Seleccionar archivo PDF o Word';
-}
-
-// Cerrar modal al hacer clic fuera
-document.getElementById('modalNuevoPedido').addEventListener('click', function(e) {
-  if (e.target === this) {
-    cerrarModalNuevoPedido();
-  }
-});
-
-// ========== MANEJO DE ARCHIVO ==========
-const archivoInput = document.getElementById('archivoInput');
-const fileNameDisplay = document.getElementById('fileNameDisplay');
-
-archivoInput.addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  
-  if (file) {
-    // Validar tamaño (10MB = 10 * 1024 * 1024 bytes)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      alert('El archivo es demasiado grande. Máximo 10MB permitido.');
-      archivoInput.value = '';
-      fileNameDisplay.textContent = 'Seleccionar archivo PDF o Word';
-      return;
-    }
-    
-    // Validar extensión
-    const extension = file.name.split('.').pop().toLowerCase();
-    const tiposPermitidos = ['pdf', 'doc', 'docx'];
-    
-    if (!tiposPermitidos.includes(extension)) {
-      alert('Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.');
-      archivoInput.value = '';
-      fileNameDisplay.textContent = 'Seleccionar archivo PDF o Word';
-      return;
-    }
-    
-    // Mostrar nombre del archivo
-    fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-${extension === 'pdf' ? 'pdf' : 'word'}"></i> ${file.name}`;
-  } else {
-    fileNameDisplay.textContent = 'Seleccionar archivo PDF o Word';
-  }
-});
-
-// Validación del formulario antes de enviar
-document.getElementById('formNuevoPedido').addEventListener('submit', function(e) {
-  const nombre = document.getElementById('nombrePedido').value.trim();
-  const archivo = document.getElementById('archivoInput').files[0];
-  
-  if (!nombre) {
-    e.preventDefault();
-    alert('El nombre del pedido es obligatorio');
-    return false;
-  }
-  
-  if (!archivo) {
-    e.preventDefault();
-    alert('Debes seleccionar un archivo PDF o Word');
-    return false;
-  }
-  
-  // Mostrar indicador de carga
-  const btnSubmit = document.getElementById('btnSubmit');
-  btnSubmit.disabled = true;
-  btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando pedido...';
-});
-
 // ========== ACCIONES ==========
 function verDetallesPedido(id) {
   window.location.href = `/detalle-pedido-compra/${id}/`;
@@ -461,6 +303,8 @@ function eliminarPedido(id, nombre) {
     window.location.href = `/eliminar-pedido-compra/${id}/`;
   }
 }
+
+// Auto-ocultar alertas
 setTimeout(() => {
   const alerts = document.querySelectorAll('.alert');
   alerts.forEach(alert => {
@@ -476,6 +320,21 @@ setTimeout(() => {
     transform: translateX(100%);
     opacity: 0;
   }
+}
+
+.text-center {
+  text-align: center;
+}
+
+.badge-info {
+  background: #2196f3;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 </style>
 

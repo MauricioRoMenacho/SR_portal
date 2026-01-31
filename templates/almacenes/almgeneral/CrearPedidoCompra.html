@@ -1,0 +1,1055 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Nuevo Pedido de Compra - Sistema{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/PedidosCompra.css' %}">
+<link rel="stylesheet" href="{% static 'almacenes/almgeneral/agregar_producto.css' %}">
+
+<style>
+.wizard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.wizard-header h1 {
+  font-size: 28px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.wizard-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.wizard-steps::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #e0e0e0;
+  z-index: 0;
+}
+
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-bottom: 8px;
+  transition: all 0.3s;
+}
+
+.wizard-step.active .step-number {
+  background: #148129;
+  color: white;
+}
+
+.wizard-step.completed .step-number {
+  background: #4caf50;
+  color: white;
+}
+
+.step-label {
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+}
+
+.wizard-step.active .step-label {
+  color: #148129;
+  font-weight: 600;
+}
+
+.step-content {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+}
+
+.step-content.hidden {
+  display: none;
+}
+
+/* Búsqueda de productos */
+.product-search-container {
+  margin-bottom: 25px;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.btn-add-new-product {
+  background: #148129;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.btn-add-new-product:hover {
+  background: #0f6621;
+  transform: translateY(-1px);
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.product-card {
+  background: #f9f9f9;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.product-card:hover {
+  border-color: #148129;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(20,129,41,0.1);
+}
+
+.product-card.selected {
+  border-color: #148129;
+  background: #e8f5e9;
+}
+
+.product-code {
+  font-size: 11px;
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.product-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.product-stock {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Tabla de productos seleccionados */
+.selected-products-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.selected-products-table th {
+  background: #f5f5f5;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.selected-products-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.quantity-input {
+  width: 80px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.price-input {
+  width: 120px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.btn-remove-item {
+  background: #d32f2f;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-remove-item:hover {
+  background: #b71c1c;
+}
+
+.empty-cart {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+.wizard-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.btn-wizard {
+  padding: 12px 30px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.btn-back {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.btn-back:hover {
+  background: #e0e0e0;
+}
+
+.btn-next {
+  background: #148129;
+  color: white;
+}
+
+.btn-next:hover {
+  background: #0f6621;
+  transform: translateY(-1px);
+}
+
+.btn-download-pdf {
+  background: #1976d2;
+  color: white;
+}
+
+.btn-download-pdf:hover {
+  background: #1565c0;
+}
+
+.total-section {
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+  text-align: right;
+}
+
+.total-section h3 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-dialog {
+  background: white;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.file-upload-area {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.file-upload-area:hover {
+  border-color: #148129;
+  background: #f5f5f5;
+}
+
+.file-upload-area.has-file {
+  border-color: #148129;
+  background: #e8f5e9;
+}
+
+/* Estilos específicos para el modal de nuevo producto */
+#modalNuevoProducto .modal-dialog {
+  padding: 0;
+}
+
+#modalNuevoProducto .form-header {
+  display: none;
+}
+
+#modalNuevoProducto .form-container {
+  padding: 0;
+  max-width: 100%;
+}
+
+#modalNuevoProducto .form-card {
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.success-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #148129;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 10000;
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+</style>
+
+<div class="wizard-container">
+  
+  <!-- Header -->
+  <div class="wizard-header">
+    <h1>
+      <i class="fa-solid fa-clipboard-list"></i>
+      Nuevo Pedido de Compra
+    </h1>
+    <a href="{% url 'PedidosCompra' %}" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i>
+      Volver
+    </a>
+  </div>
+
+  <!-- Steps -->
+  <div class="wizard-steps">
+    <div class="wizard-step active" data-step="1">
+      <div class="step-number">1</div>
+      <div class="step-label">Información Básica</div>
+    </div>
+    <div class="wizard-step" data-step="2">
+      <div class="step-number">2</div>
+      <div class="step-label">Productos</div>
+    </div>
+    <div class="wizard-step" data-step="3">
+      <div class="step-number">3</div>
+      <div class="step-label">Documento PDF</div>
+    </div>
+  </div>
+
+  <form method="POST" enctype="multipart/form-data" id="formPedido">
+    {% csrf_token %}
+    
+    <!-- STEP 1: Información Básica -->
+    <div class="step-content" id="step1">
+      <h3 style="margin-bottom: 20px; color: #333;">
+        <i class="fa-solid fa-info-circle"></i>
+        Información del Pedido
+      </h3>
+      
+      <div class="form-group">
+        <label>
+          <i class="fa-solid fa-tag"></i>
+          Nombre del Pedido *
+        </label>
+        <input 
+          type="text" 
+          name="nombre" 
+          id="nombrePedido"
+          class="form-input" 
+          placeholder="Ej: Equipamiento Deportivo 2025"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label>
+          <i class="fa-solid fa-align-left"></i>
+          Descripción
+        </label>
+        <textarea 
+          name="descripcion" 
+          id="descripcionPedido"
+          class="form-textarea" 
+          rows="4"
+          placeholder="Describe brevemente el pedido de compra..."
+        ></textarea>
+      </div>
+
+      <div class="wizard-actions">
+        <div></div>
+        <button type="button" class="btn-wizard btn-next" onclick="nextStep(1)">
+          Siguiente
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Productos -->
+    <div class="step-content hidden" id="step2">
+      <h3 style="margin-bottom: 20px; color: #333;">
+        <i class="fa-solid fa-box"></i>
+        Seleccionar Productos
+      </h3>
+
+      <div class="product-search-container">
+        <div class="search-box">
+          <input 
+            type="text" 
+            id="searchProduct" 
+            class="search-input" 
+            placeholder="Buscar producto por nombre o código..."
+          >
+          <button type="button" class="btn-add-new-product" onclick="abrirModalNuevoProducto()">
+            <i class="fa-solid fa-plus"></i>
+            Crear Nuevo Producto
+          </button>
+        </div>
+
+        <div class="products-grid" id="productsGrid">
+          {% for producto in productos %}
+          <div class="product-card" 
+               data-id="{{ producto.id_producto }}"
+               data-nombre="{{ producto.nombre|lower }}"
+               data-codigo="{{ producto.codigo_producto|lower }}"
+               onclick="toggleProductSelection({{ producto.id_producto }}, '{{ producto.codigo_producto }}', '{{ producto.nombre }}', '{{ producto.unidad.nombre }}', {{ producto.cantidad }})">
+            <div class="product-code">{{ producto.codigo_producto }}</div>
+            <div class="product-name">{{ producto.nombre }}</div>
+            <div class="product-stock">
+              <i class="fa-solid fa-boxes-stacked"></i>
+              Stock: {{ producto.cantidad }} {{ producto.unidad.abreviatura|default:producto.unidad.nombre }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <h4 style="margin-top: 30px; margin-bottom: 15px;">
+        <i class="fa-solid fa-shopping-cart"></i>
+        Productos Seleccionados (<span id="cartCount">0</span>)
+      </h4>
+
+      <div id="selectedProductsContainer">
+        <div class="empty-cart">
+          <i class="fa-solid fa-cart-shopping" style="font-size: 48px; color: #ccc; margin-bottom: 10px;"></i>
+          <p>No has seleccionado ningún producto</p>
+        </div>
+      </div>
+
+      <div class="wizard-actions">
+        <button type="button" class="btn-wizard btn-back" onclick="prevStep(2)">
+          <i class="fa-solid fa-arrow-left"></i>
+          Anterior
+        </button>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn-wizard btn-download-pdf" onclick="descargarPDF()" id="btnDescargarPDF" disabled>
+            <i class="fa-solid fa-file-pdf"></i>
+            Descargar PDF
+          </button>
+          <button type="button" class="btn-wizard btn-next" onclick="nextStep(2)">
+            Siguiente
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Subir Archivo -->
+    <div class="step-content hidden" id="step3">
+      <h3 style="margin-bottom: 20px; color: #333;">
+        <i class="fa-solid fa-file-upload"></i>
+        Documento del Pedido (Opcional)
+      </h3>
+
+      <p style="margin-bottom: 20px; color: #666;">
+        Puedes subir un archivo PDF o Word con detalles adicionales del pedido. Este paso es opcional.
+      </p>
+
+      <div class="file-upload-area" onclick="document.getElementById('archivoInput').click()">
+        <i class="fa-solid fa-cloud-upload-alt" style="font-size: 48px; color: #999; margin-bottom: 15px;"></i>
+        <p id="fileNameDisplay">Haz clic para seleccionar un archivo (PDF, DOC, DOCX)</p>
+        <small style="color: #999;">Opcional - Máximo 10MB</small>
+      </div>
+
+      <input 
+        type="file" 
+        name="archivo" 
+        id="archivoInput"
+        accept=".pdf,.doc,.docx"
+        style="display: none;"
+      >
+
+      <!-- Input hidden con los productos seleccionados -->
+      <input type="hidden" name="productos_json" id="productosJson">
+
+      <div class="wizard-actions">
+        <button type="button" class="btn-wizard btn-back" onclick="prevStep(3)">
+          <i class="fa-solid fa-arrow-left"></i>
+          Anterior
+        </button>
+        <button type="submit" class="btn-wizard btn-next" id="btnFinalizar">
+          <i class="fa-solid fa-check"></i>
+          Crear Pedido
+        </button>
+      </div>
+    </div>
+
+  </form>
+
+</div>
+
+<!-- Modal para nuevo producto -->
+<div class="modal" id="modalNuevoProducto">
+  <div class="modal-dialog">
+    <div style="padding: 30px; position: relative;">
+      <button type="button" 
+              style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #999;" 
+              onclick="cerrarModalNuevoProducto()">
+        <i class="fa-solid fa-times"></i>
+      </button>
+      
+      <h2 style="margin: 0 0 20px 0; font-size: 22px;">
+        <i class="fa-solid fa-plus-circle"></i>
+        Crear Nuevo Producto
+      </h2>
+
+      <div id="formNuevoProductoContainer">
+        <p style="text-align: center; padding: 20px;">
+          <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px;"></i>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== VARIABLES GLOBALES =====
+let currentStep = 1;
+let selectedProducts = [];
+
+// ===== NAVEGACIÓN WIZARD =====
+function nextStep(step) {
+  if (step === 1) {
+    const nombre = document.getElementById('nombrePedido').value.trim();
+    if (!nombre) {
+      alert('Por favor ingresa el nombre del pedido');
+      return;
+    }
+  }
+  
+  if (step === 2) {
+    if (selectedProducts.length === 0) {
+      alert('Debes seleccionar al menos un producto');
+      return;
+    }
+  }
+  
+  document.getElementById(`step${step}`).classList.add('hidden');
+  document.getElementById(`step${step + 1}`).classList.remove('hidden');
+  
+  updateWizardSteps(step + 1);
+  currentStep = step + 1;
+  window.scrollTo(0, 0);
+}
+
+function prevStep(step) {
+  document.getElementById(`step${step}`).classList.add('hidden');
+  document.getElementById(`step${step - 1}`).classList.remove('hidden');
+  
+  updateWizardSteps(step - 1);
+  currentStep = step - 1;
+  window.scrollTo(0, 0);
+}
+
+function updateWizardSteps(activeStep) {
+  document.querySelectorAll('.wizard-step').forEach(step => {
+    const stepNum = parseInt(step.getAttribute('data-step'));
+    step.classList.remove('active', 'completed');
+    
+    if (stepNum === activeStep) {
+      step.classList.add('active');
+    } else if (stepNum < activeStep) {
+      step.classList.add('completed');
+    }
+  });
+}
+
+// ===== BÚSQUEDA DE PRODUCTOS =====
+document.getElementById('searchProduct').addEventListener('input', function(e) {
+  const search = e.target.value.toLowerCase();
+  const cards = document.querySelectorAll('.product-card');
+  
+  cards.forEach(card => {
+    const nombre = card.getAttribute('data-nombre');
+    const codigo = card.getAttribute('data-codigo');
+    
+    if (nombre.includes(search) || codigo.includes(search)) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+});
+
+// ===== SELECCIÓN DE PRODUCTOS =====
+function toggleProductSelection(id, codigo, nombre, unidad, stock) {
+  const index = selectedProducts.findIndex(p => p.id === id);
+  
+  if (index > -1) {
+    selectedProducts.splice(index, 1);
+    document.querySelector(`[data-id="${id}"]`).classList.remove('selected');
+  } else {
+    selectedProducts.push({
+      id: id,
+      codigo: codigo,
+      nombre: nombre,
+      unidad: unidad,
+      stock: stock,
+      cantidad: 1,
+      precio: 0
+    });
+    document.querySelector(`[data-id="${id}"]`).classList.add('selected');
+  }
+  
+  updateSelectedProductsTable();
+}
+
+function updateSelectedProductsTable() {
+  const container = document.getElementById('selectedProductsContainer');
+  const cartCount = document.getElementById('cartCount');
+  const btnDownloadPDF = document.getElementById('btnDescargarPDF');
+  
+  cartCount.textContent = selectedProducts.length;
+  
+  if (selectedProducts.length === 0) {
+    container.innerHTML = `
+      <div class="empty-cart">
+        <i class="fa-solid fa-cart-shopping" style="font-size: 48px; color: #ccc; margin-bottom: 10px;"></i>
+        <p>No has seleccionado ningún producto</p>
+      </div>
+    `;
+    btnDownloadPDF.disabled = true;
+    return;
+  }
+  
+  btnDownloadPDF.disabled = false;
+  
+  let html = `
+    <table class="selected-products-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Stock</th>
+          <th>Cantidad Solicitada</th>
+          <th>Precio Unitario</th>
+          <th>Subtotal</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  
+  let total = 0;
+  
+  selectedProducts.forEach((producto, index) => {
+    const subtotal = producto.cantidad * producto.precio;
+    total += subtotal;
+    
+    html += `
+      <tr>
+        <td><strong>${producto.codigo}</strong></td>
+        <td>${producto.nombre}</td>
+        <td>${producto.stock} ${producto.unidad}</td>
+        <td>
+          <input type="number" 
+                 class="quantity-input" 
+                 value="${producto.cantidad}" 
+                 min="1"
+                 onchange="updateQuantity(${index}, this.value)">
+        </td>
+        <td>
+          <input type="number" 
+                 class="price-input" 
+                 value="${producto.precio}" 
+                 min="0"
+                 step="0.01"
+                 placeholder="0.00"
+                 onchange="updatePrice(${index}, this.value)">
+        </td>
+        <td><strong>S/. ${subtotal.toFixed(2)}</strong></td>
+        <td>
+          <button type="button" class="btn-remove-item" onclick="removeProduct(${index})">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+  
+  html += `
+      </tbody>
+    </table>
+    <div class="total-section">
+      <h3>Total General: S/. ${total.toFixed(2)}</h3>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+function updateQuantity(index, cantidad) {
+  selectedProducts[index].cantidad = parseInt(cantidad) || 1;
+  updateSelectedProductsTable();
+}
+
+function updatePrice(index, precio) {
+  selectedProducts[index].precio = parseFloat(precio) || 0;
+  updateSelectedProductsTable();
+}
+
+function removeProduct(index) {
+  const producto = selectedProducts[index];
+  document.querySelector(`[data-id="${producto.id}"]`).classList.remove('selected');
+  selectedProducts.splice(index, 1);
+  updateSelectedProductsTable();
+}
+
+// ===== DESCARGAR PDF =====
+function descargarPDF() {
+  if (selectedProducts.length === 0) {
+    alert('No hay productos seleccionados');
+    return;
+  }
+  
+  const nombre = document.getElementById('nombrePedido').value || 'Pedido de Compra';
+  const descripcion = document.getElementById('descripcionPedido').value || '';
+  
+  const data = {
+    nombre: nombre,
+    descripcion: descripcion,
+    productos: selectedProducts
+  };
+  
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{% url "GenerarPDFPedido" %}';
+  form.target = '_blank';
+  
+  const csrfInput = document.createElement('input');
+  csrfInput.type = 'hidden';
+  csrfInput.name = 'csrfmiddlewaretoken';
+  csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  form.appendChild(csrfInput);
+  
+  const dataInput = document.createElement('input');
+  dataInput.type = 'hidden';
+  dataInput.name = 'data';
+  dataInput.value = JSON.stringify(data);
+  form.appendChild(dataInput);
+  
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+}
+
+// ===== MANEJO DE ARCHIVO =====
+const archivoInput = document.getElementById('archivoInput');
+const fileNameDisplay = document.getElementById('fileNameDisplay');
+const uploadArea = document.querySelector('.file-upload-area');
+
+archivoInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  
+  if (file) {
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('El archivo es demasiado grande. Máximo 10MB permitido.');
+      archivoInput.value = '';
+      return;
+    }
+    
+    const extension = file.name.split('.').pop().toLowerCase();
+    const tiposPermitidos = ['pdf', 'doc', 'docx'];
+    
+    if (!tiposPermitidos.includes(extension)) {
+      alert('Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.');
+      archivoInput.value = '';
+      return;
+    }
+    
+    fileNameDisplay.innerHTML = `<i class="fa-solid fa-file-${extension === 'pdf' ? 'pdf' : 'word'}"></i> ${file.name}`;
+    uploadArea.classList.add('has-file');
+  } else {
+    fileNameDisplay.textContent = 'Haz clic para seleccionar un archivo (PDF, DOC, DOCX)';
+    uploadArea.classList.remove('has-file');
+  }
+});
+
+// ===== ENVIAR FORMULARIO =====
+document.getElementById('formPedido').addEventListener('submit', function(e) {
+  document.getElementById('productosJson').value = JSON.stringify(selectedProducts);
+  
+  const btnFinalizar = document.getElementById('btnFinalizar');
+  btnFinalizar.disabled = true;
+  btnFinalizar.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando pedido...';
+});
+
+// ===== FUNCIÓN PARA MOSTRAR TOAST =====
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = 'success-toast';
+  toast.innerHTML = `<i class="fa-solid fa-check-circle"></i> ${message}`;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideInRight 0.3s ease reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ===== AGREGAR PRODUCTO AL GRID DINÁMICAMENTE =====
+function agregarProductoAlGrid(producto) {
+  const grid = document.getElementById('productsGrid');
+  
+  // Crear nueva tarjeta de producto
+  const card = document.createElement('div');
+  card.className = 'product-card';
+  card.setAttribute('data-id', producto.id_producto);
+  card.setAttribute('data-nombre', producto.nombre.toLowerCase());
+  card.setAttribute('data-codigo', producto.codigo_producto.toLowerCase());
+  card.onclick = function() {
+    toggleProductSelection(
+      producto.id_producto, 
+      producto.codigo_producto, 
+      producto.nombre, 
+      producto.unidad, 
+      producto.cantidad
+    );
+  };
+  
+  card.innerHTML = `
+    <div class="product-code">${producto.codigo_producto}</div>
+    <div class="product-name">${producto.nombre}</div>
+    <div class="product-stock">
+      <i class="fa-solid fa-boxes-stacked"></i>
+      Stock: ${producto.cantidad} ${producto.unidad}
+    </div>
+  `;
+  
+  // Agregar al inicio del grid
+  grid.insertBefore(card, grid.firstChild);
+  
+  // Hacer scroll para que se vea el nuevo producto
+  grid.scrollTop = 0;
+  
+  // Animación de highlight
+  card.style.animation = 'highlight 1s ease';
+}
+
+// ===== MODAL NUEVO PRODUCTO =====
+function abrirModalNuevoProducto() {
+  const modal = document.getElementById('modalNuevoProducto');
+  modal.classList.add('show');
+  
+  fetch('{% url "agregar_producto" %}')
+    .then(response => response.text())
+    .then(html => {
+      const container = document.getElementById('formNuevoProductoContainer');
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const formCard = doc.querySelector('.form-card');
+      
+      if (formCard) {
+        container.innerHTML = formCard.innerHTML;
+        
+        // Modificar formulario para AJAX
+        const form = container.querySelector('form');
+        if (form) {
+          form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            guardarNuevoProducto(form);
+          });
+        }
+        
+        // Ocultar botón "Volver"
+        const btnBack = container.querySelectorAll('.btn-cancel');
+        btnBack.forEach(btn => {
+          if (btn.textContent.includes('Volver') || btn.textContent.includes('Cancelar')) {
+            btn.style.display = 'none';
+          }
+        });
+      }
+    });
+}
+
+function cerrarModalNuevoProducto() {
+  document.getElementById('modalNuevoProducto').classList.remove('show');
+}
+
+function guardarNuevoProducto(form) {
+  const formData = new FormData(form);
+  const btnSubmit = form.querySelector('.btn-submit');
+  
+  // Deshabilitar botón
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+  
+  fetch('{% url "agregar_producto" %}', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.text())
+  .then(html => {
+    if (html.includes('alert-error') || html.includes('Error')) {
+      alert('Error al crear el producto. Verifica los datos.');
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Producto';
+    } else {
+      // Extraer datos del nuevo producto desde el HTML de respuesta
+      // O mejor aún, usar una API que devuelva JSON
+      
+      // Por ahora, hacer un fetch para obtener el último producto creado
+      fetch('/api/ultimo-producto/')  // NECESITAS CREAR ESTA API
+        .then(r => r.json())
+        .then(producto => {
+          // Agregar producto al grid SIN recargar
+          agregarProductoAlGrid(producto);
+          
+          // Mostrar toast de éxito
+          showToast('Producto creado exitosamente');
+          
+          // Cerrar modal
+          cerrarModalNuevoProducto();
+        })
+        .catch(() => {
+          // Fallback: si no hay API, simplemente cerrar y mostrar mensaje
+          showToast('Producto creado. Actualiza la búsqueda para verlo.');
+          cerrarModalNuevoProducto();
+        });
+    }
+  })
+  .catch(error => {
+    alert('Error al guardar el producto');
+    console.error(error);
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = '<i class="fa-solid fa-save"></i> Guardar Producto';
+  });
+}
+
+// Cerrar modal al hacer clic fuera
+document.getElementById('modalNuevoProducto').addEventListener('click', function(e) {
+  if (e.target === this) {
+    cerrarModalNuevoProducto();
+  }
+});
+
+// CSS para animación de highlight
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes highlight {
+    0%, 100% { background: #f9f9f9; }
+    50% { background: #e8f5e9; }
+  }
+`;
+document.head.appendChild(style);
+</script>
+
+{% endblock %}

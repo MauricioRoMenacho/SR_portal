@@ -4,7 +4,7 @@ from django.db import models
 class Unidad(models.Model):
     nombre = models.CharField(max_length=50, unique=True)
     abreviatura = models.CharField(max_length=10, blank=True)
-    activo = models.BooleanField(default=True)  # NUEVO: para activar/desactivar
+    activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -40,7 +40,7 @@ class ProductoAlmacen(models.Model):
     estante = models.CharField(max_length=50, blank=True, null=True)
     cantidad = models.PositiveIntegerField(default=0)
     unidad = models.ForeignKey(
-        Unidad,  # Cambiado de UnidadMedida a Unidad
+        Unidad,
         on_delete=models.PROTECT,
         related_name='productos'
     )
@@ -58,7 +58,6 @@ class ProductoAlmacen(models.Model):
             }
             self.codigo_almacen = codigos.get(self.ubicacion_almacen, '00')
         
-        # Generar codigo_producto automático si no existe
         if not self.codigo_producto:
             ultimo_producto = ProductoAlmacen.objects.filter(
                 ubicacion_almacen=self.ubicacion_almacen
@@ -126,7 +125,7 @@ class PedidoCompra(models.Model):
     id_pedido = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True, null=True)
-    archivo = models.FileField(upload_to='pedidos_compra/', null=False, blank=False)
+    archivo = models.FileField(upload_to='pedidos_compra/', null=True, blank=True)  # Ahora opcional
     estado = models.CharField(max_length=4, choices=ESTADO_CHOICES, default='PEND')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
@@ -144,11 +143,44 @@ class PedidoCompra(models.Model):
     def cotizacion_seleccionada(self):
         return self.cotizaciones.filter(estado='SELEC').first()
     
+    def total_items(self):
+        return self.items.count()
+    
+    def total_general(self):
+        """Calcula el total general del pedido basado en los items"""
+        total = 0
+        for item in self.items.all():
+            total += item.subtotal()
+        return total
+    
     class Meta:
         db_table = 'pedidos_compra'
         verbose_name = 'Pedido de Compra'
         verbose_name_plural = 'Pedidos de Compra'
         ordering = ['-fecha_creacion']
+
+
+class ItemPedido(models.Model):
+    """Items/Productos dentro de un pedido de compra"""
+    id_item = models.AutoField(primary_key=True)
+    pedido = models.ForeignKey(PedidoCompra, on_delete=models.CASCADE, related_name='items')
+    producto = models.ForeignKey(ProductoAlmacen, on_delete=models.PROTECT, related_name='items_pedido')
+    cantidad_solicitada = models.PositiveIntegerField()
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    observaciones = models.TextField(blank=True, null=True)
+    fecha_agregado = models.DateTimeField(auto_now_add=True)
+    
+    def subtotal(self):
+        return self.cantidad_solicitada * self.precio_unitario
+    
+    def __str__(self):
+        return f"{self.producto.nombre} x{self.cantidad_solicitada}"
+    
+    class Meta:
+        db_table = 'items_pedido'
+        verbose_name = 'Item de Pedido'
+        verbose_name_plural = 'Items de Pedido'
+        ordering = ['fecha_agregado']
 
 
 class Cotizacion(models.Model):
