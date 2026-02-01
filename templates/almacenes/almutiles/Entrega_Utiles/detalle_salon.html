@@ -1,0 +1,441 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}{{ salon.nombre }} - Detalle Salón{% endblock %}
+
+{% block content %}
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    .almacenes-container {
+        padding: 30px;
+        background-color: transparent;
+        min-height: calc(100vh - 60px);
+    }
+
+    /* ==================== HEADER ==================== */
+    .page-header {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 28px;
+    }
+
+    .btn-back {
+        width: 44px; height: 44px;
+        background: white; border: 1px solid #ddd; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all 0.3s;
+        color: #666; text-decoration: none; font-size: 18px;
+    }
+    .btn-back:hover {
+        background: #f1f8f4; border-color: #148129;
+        color: #148129; transform: translateX(-3px);
+    }
+
+    .header-info h2 { font-size: 24px; color: #333; font-weight: 600; margin: 0; }
+    .header-info p  { font-size: 13px; color: #999; margin-top: 3px; }
+
+    /* ==================== STATS ==================== */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stat-card {
+        background: white; padding: 18px 20px; border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-left: 4px solid #148129; transition: all 0.3s;
+    }
+    .stat-card:nth-child(2) { border-left-color: #06d6a0; }
+    .stat-card:nth-child(3) { border-left-color: #ffd23f; }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+    .stat-label { font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .stat-value { font-size: 28px; font-weight: 700; color: #333; line-height: 1; }
+
+    /* ==================== TOOLBAR ==================== */
+    .toolbar {
+        background: white; padding: 16px 20px; border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        display: flex; flex-wrap: wrap; gap: 12px;
+        align-items: center; justify-content: space-between;
+    }
+
+    .toolbar-left { display: flex; gap: 12px; flex: 1; flex-wrap: wrap; align-items: center; }
+    .toolbar-right { display: flex; gap: 10px; }
+
+    .search-wrapper { position: relative; flex: 1; min-width: 240px; max-width: 360px; }
+    .search-wrapper i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #999; }
+    .search-input {
+        width: 100%; padding: 11px 16px 11px 2.75rem;
+        border: 1px solid #ddd; border-radius: 8px;
+        font-size: 14px; color: #333; background: #f9f9f9; transition: all 0.3s;
+    }
+    .search-input:focus { outline: none; border-color: #148129; background: white; box-shadow: 0 0 0 3px rgba(20,129,41,0.1); }
+    .search-input::placeholder { color: #999; }
+
+    /* ==================== BUTTONS ==================== */
+    .btn {
+        padding: 11px 20px; border: none; border-radius: 8px;
+        font-size: 14px; font-weight: 600; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 8px;
+        transition: all 0.25s; text-decoration: none; white-space: nowrap; font-family: inherit;
+    }
+    .btn-primary { background: #148129; color: white; box-shadow: 0 2px 4px rgba(20,129,41,0.2); }
+    .btn-primary:hover { background: #106020; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(20,129,41,0.3); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-secondary { background: white; color: #333; border: 1px solid #ddd; }
+    .btn-secondary:hover { background: #f1f8f4; border-color: #148129; color: #148129; }
+
+    /* ==================== UPLOAD AREA ==================== */
+    .upload-area {
+        border: 2px dashed #ddd; border-radius: 12px;
+        padding: 28px 20px; text-align: center;
+        background: #fafafa; transition: all 0.3s;
+        margin-bottom: 24px; cursor: pointer;
+    }
+    .upload-area:hover, .upload-area.dragover {
+        border-color: #148129; background: #f1f8f4;
+    }
+    .upload-area i { font-size: 36px; color: #148129; margin-bottom: 10px; display: block; }
+    .upload-area h4 { font-size: 15px; color: #333; margin-bottom: 4px; }
+    .upload-area p { font-size: 13px; color: #999; }
+    .upload-area .browse-link { color: #148129; font-weight: 600; cursor: pointer; text-decoration: underline; }
+    .file-input-hidden { display: none; }
+
+    /* ==================== TABLE ==================== */
+    .table-card {
+        background: white; border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow: hidden;
+    }
+    .table-wrapper { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table thead { background: #f9f9f9; border-bottom: 2px solid #e0e0e0; }
+    .data-table th {
+        padding: 14px 18px; text-align: left; font-size: 12px;
+        font-weight: 600; color: #666; text-transform: uppercase;
+        letter-spacing: 0.5px; white-space: nowrap;
+    }
+    .data-table tbody tr { border-bottom: 1px solid #eee; transition: all 0.2s; }
+    .data-table tbody tr:hover { background: #f1f8f4; }
+    .data-table td { padding: 14px 18px; font-size: 14px; color: #333; }
+
+    /* ── Celdas específicas ── */
+    .alumno-cell { display: flex; align-items: center; gap: 12px; }
+    .alumno-avatar {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: #ffd23f; display: flex; align-items: center;
+        justify-content: center; font-weight: 700; font-size: 14px;
+        color: #333; flex-shrink: 0;
+    }
+    .alumno-avatar.male { background: #c8e6ff; color: #004e89; }
+    .alumno-avatar.female { background: #ffd6ec; color: #c2185b; }
+    .alumno-name { font-weight: 600; color: #333; }
+
+    .badge-sexo {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
+    .badge-sexo.male { background: #e3f2fd; color: #1565c0; }
+    .badge-sexo.female { background: #fce4ec; color: #c2185b; }
+
+    .status-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    }
+    .status-badge.entregado { background: #d1fae5; color: #065f46; }
+    .status-badge.pendiente { background: #fef3c7; color: #92400e; }
+
+    .actions-cell { display: flex; gap: 8px; }
+    .action-btn {
+        width: 34px; height: 34px; border: none; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all 0.2s; background: #f9f9f9; color: #666;
+    }
+    .action-btn:hover { transform: scale(1.1); }
+    .action-btn.toggle:hover { background: #148129; color: white; }
+    .action-btn.delete:hover { background: #ef476f; color: white; }
+
+    /* ==================== EMPTY STATE ==================== */
+    .empty-state { text-align: center; padding: 50px 20px; }
+    .empty-state i { font-size: 52px; color: #ddd; margin-bottom: 16px; display: block; }
+    .empty-state h3 { font-size: 18px; color: #333; font-weight: 600; margin-bottom: 8px; }
+    .empty-state p { color: #666; font-size: 14px; }
+
+    /* ==================== MENSAJES ==================== */
+    .messages { list-style: none; margin-bottom: 20px; }
+    .messages li {
+        padding: 12px 16px; border-radius: 8px; font-size: 14px;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .messages .error  { background: #fff0f2; color: #ef476f; border: 1px solid #f8c0cc; }
+    .messages .success { background: #f0fff4; color: #148129; border: 1px solid #c3e6cb; }
+    .messages .warning { background: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
+
+    /* ==================== RESPONSIVE ==================== */
+    @media (max-width: 768px) {
+        .almacenes-container { padding: 15px; }
+        .toolbar { flex-direction: column; align-items: stretch; }
+        .toolbar-left { flex-direction: column; }
+        .search-wrapper { max-width: 100%; }
+        .stats-grid { grid-template-columns: 1fr 1fr; }
+        .data-table th, .data-table td { padding: 10px 12px; }
+    }
+</style>
+
+<div class="almacenes-container">
+
+    <!-- HEADER -->
+    <header class="page-header">
+        <a href="{% url 'entrega_utiles' %}" class="btn-back" title="Regresar">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div class="header-info">
+            <h2>{{ salon.nombre }}</h2>
+            <p>{{ salon.profesora }} · {{ salon.get_grado_display }} · Turno {{ salon.turno }} · Código: {{ salon.codigo }}</p>
+        </div>
+    </header>
+
+    <!-- MENSAJES -->
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}">
+            <i class="fa-solid fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}triangle-exclamation{% else %}circle-exclamation{% endif %}"></i>
+            {{ message }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <!-- STATS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Alumnos</div>
+            <div class="stat-value">{{ salon.total_alumnos }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Entregados</div>
+            <div class="stat-value">{{ salon.total_entregados }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Pendientes</div>
+            <div class="stat-value">{{ salon.total_pendientes }}</div>
+        </div>
+    </div>
+
+    <!-- UPLOAD EXCEL -->
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+        <form method="post" action="{% url 'importar_excel_alumnos' salon.pk %}" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            <input type="file" name="archivo_excel" id="fileInput" accept=".xlsx,.xls" class="file-input-hidden"
+                   onchange="this.form.submit()">
+        </form>
+        <i class="fa-solid fa-file-excel"></i>
+        <h4>Importar alumnos desde Excel</h4>
+        <p>Arrastra y suelta tu archivo aquí o haz clic en <span class="browse-link">explorar archivos</span></p>
+        <p style="font-size: 11px; color: #bbb; margin-top: 6px;">Solo archivos .xlsx o .xls · Se importarán únicamente los alumnos del aula "{{ salon.nombre }}"</p>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="search-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" placeholder="Buscar alumno por nombre o DNI..." id="searchInput">
+            </div>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-secondary" id="btnExportar" title="Exportar lista">
+                <i class="fa-solid fa-download"></i> Exportar
+            </button>
+        </div>
+    </div>
+
+    <!-- TABLA DE ALUMNOS -->
+    {% if alumnos %}
+    <div class="table-card">
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Alumno</th>
+                        <th>DNI</th>
+                        <th>Sexo</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alumno in alumnos %}
+                    <tr id="row-{{ alumno.pk }}">
+                        <td style="color:#999; font-size:13px;">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="alumno-cell">
+                                <div class="alumno-avatar {% if alumno.sexo == 'M' %}male{% elif alumno.sexo == 'F' %}female{% endif %}">
+                                    {{ alumno.nombre|first }}
+                                </div>
+                                <span class="alumno-name">{{ alumno.nombre }}</span>
+                            </div>
+                        </td>
+                        <td style="color:#666;">{{ alumno.dni }}</td>
+                        <td>
+                            {% if alumno.sexo %}
+                            <span class="badge-sexo {% if alumno.sexo == 'M' %}male{% else %}female{% endif %}">
+                                <i class="fa-solid fa-{% if alumno.sexo == 'M' %}mars{% else %}venus{% endif %}"></i>
+                                {{ alumno.get_sexo_display }}
+                            </span>
+                            {% else %}
+                            <span style="color:#bbb; font-size:13px;">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge {% if alumno.entrega_completada %}entregado{% else %}pendiente{% endif %}" id="status-{{ alumno.pk }}">
+                                <i class="fa-solid fa-{% if alumno.entrega_completada %}check-circle{% else %}clock{% endif %}"></i>
+                                {% if alumno.entrega_completada %}Entregado{% else %}Pendiente{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="action-btn toggle" title="{% if alumno.entrega_completada %}Marcar pendiente{% else %}Marcar entregado{% endif %}"
+                                        onclick="toggleEntrega({{ alumno.pk }})">
+                                    <i class="fa-solid fa-{% if alumno.entrega_completada %}rotate-left{% else %}check{% endif %}" id="icon-{{ alumno.pk }}"></i>
+                                </button>
+                                <button class="action-btn delete" title="Eliminar alumno"
+                                        onclick="eliminarAlumno({{ alumno.pk }}, '{{ alumno.nombre }}')">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="table-card">
+        <div class="empty-state">
+            <i class="fa-solid fa-users"></i>
+            <h3>No hay alumnos en este salón</h3>
+            <p>Importa un Excel para agregar los alumnos automáticamente</p>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    // ── Drag & drop ──
+    const uploadArea = document.getElementById('uploadArea');
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+            const input = document.getElementById('fileInput');
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+            document.getElementById('uploadForm').submit();
+        }
+    });
+
+    // ── Búsqueda en tiempo real ──
+    document.getElementById('searchInput').addEventListener('input', function () {
+        const term = this.value.toLowerCase();
+        document.querySelectorAll('.data-table tbody tr').forEach(row => {
+            row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+        });
+    });
+
+    // ── Toggle entrega (AJAX) ──
+    function toggleEntrega(alumnoId) {
+        fetch(`/api/alumnos/${alumnoId}/toggle-entrega/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)[1] }
+        })
+        .then(r => r.json())
+        .then(data => {
+            const badge  = document.getElementById(`status-${alumnoId}`);
+            const icon   = document.getElementById(`icon-${alumnoId}`);
+            
+            if (data.entrega_completada) {
+                badge.className = 'status-badge entregado';
+                badge.innerHTML = '<i class="fa-solid fa-check-circle"></i> Entregado';
+                icon.className = 'fa-solid fa-rotate-left';
+            } else {
+                badge.className = 'status-badge pendiente';
+                badge.innerHTML = '<i class="fa-solid fa-clock"></i> Pendiente';
+                icon.className = 'fa-solid fa-check';
+            }
+            
+            // ✅ Actualizar estadísticas en tiempo real
+            actualizarEstadisticas();
+        })
+        .catch(() => alert('Error al actualizar. Recarga la página.'));
+    }
+
+    // ── Eliminar alumno (AJAX) ──
+    function eliminarAlumno(alumnoId, nombre) {
+        if (!confirm(`¿Eliminar a ${nombre}? Esta acción no se puede deshacer.`)) return;
+
+        fetch(`/api/alumnos/${alumnoId}/eliminar/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)[1] }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                document.getElementById(`row-${alumnoId}`).remove();
+                
+                // ✅ Actualizar estadísticas en tiempo real
+                actualizarEstadisticas();
+            }
+        })
+        .catch(() => alert('Error al eliminar. Recarga la página.'));
+    }
+
+    // ✅ NUEVA FUNCIÓN: Actualizar estadísticas en tiempo real
+    function actualizarEstadisticas() {
+        const filas = document.querySelectorAll('.data-table tbody tr');
+        let totalAlumnos = 0;
+        let totalEntregados = 0;
+        let totalPendientes = 0;
+        
+        filas.forEach(fila => {
+            // Solo contar filas que no han sido eliminadas
+            if (fila.id && fila.parentElement) {
+                totalAlumnos++;
+                const badge = fila.querySelector('.status-badge');
+                if (badge && badge.classList.contains('entregado')) {
+                    totalEntregados++;
+                } else {
+                    totalPendientes++;
+                }
+            }
+        });
+        
+        // Actualizar los valores en las tarjetas de estadísticas
+        const statCards = document.querySelectorAll('.stat-card .stat-value');
+        if (statCards.length >= 3) {
+            statCards[0].textContent = totalAlumnos;
+            statCards[1].textContent = totalEntregados;
+            statCards[2].textContent = totalPendientes;
+        }
+    }
+</script>
+
+{% endblock %}

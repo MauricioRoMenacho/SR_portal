@@ -210,6 +210,7 @@ class Cotizacion(models.Model):
         ordering = ['-fecha_creacion']
 
 
+
 class Salon(models.Model):
     TURNO_CHOICES = [
         ('Mañana', 'Mañana'),
@@ -226,7 +227,7 @@ class Salon(models.Model):
     ]
 
     nombre = models.CharField(max_length=100)
-    codigo = models.CharField(max_length=10, unique=True)  # ej: "1A", "2B"
+    codigo = models.CharField(max_length=10, unique=True)  # ej: "EULER", "PITAGORAS"
     profesora = models.CharField(max_length=150)
     grado = models.IntegerField(choices=GRADO_CHOICES)
     turno = models.CharField(max_length=10, choices=TURNO_CHOICES, default='Mañana')
@@ -240,21 +241,30 @@ class Salon(models.Model):
     def __str__(self):
         return self.nombre
 
-    # ── Propiedades calculadas que usa el template ──────────────────────
-
     @property
     def profesora_iniciales(self):
-        """Retorna las iniciales de la profesora. Ej: 'María López' -> 'ML'"""
         partes = self.profesora.split()
         return ''.join([p[0].upper() for p in partes if p])[:2]
 
     @property
     def total_alumnos(self):
-        """Cantidad de alumnos en el salón."""
         return self.alumnos.count()
+
+    @property
+    def total_entregados(self):
+        return self.alumnos.filter(entrega_completada=True).count()
+
+    @property
+    def total_pendientes(self):
+        return self.alumnos.filter(entrega_completada=False).count()
 
 
 class Alumno(models.Model):
+    SEXO_CHOICES = [
+        ('M', 'Masculino'),
+        ('F', 'Femenino'),
+    ]
+
     salon = models.ForeignKey(
         Salon,
         on_delete=models.CASCADE,
@@ -262,6 +272,7 @@ class Alumno(models.Model):
     )
     nombre = models.CharField(max_length=150)
     dni = models.CharField(max_length=10, unique=True)
+    sexo = models.CharField(max_length=1, choices=SEXO_CHOICES, blank=True, default='')
     email = models.EmailField(blank=True, null=True)
     entrega_completada = models.BooleanField(default=False)
     fecha_entrega = models.DateTimeField(blank=True, null=True)
@@ -273,10 +284,3 @@ class Alumno(models.Model):
 
     def __str__(self):
         return f"{self.nombre} — {self.salon.nombre}"
-
-    def marcar_entrega(self):
-        """Marca la entrega como completada y registra la fecha."""
-        from django.utils import timezone
-        self.entrega_completada = True
-        self.fecha_entrega = timezone.now()
-        self.save()

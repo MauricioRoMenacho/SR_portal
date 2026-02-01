@@ -34,7 +34,7 @@ urlpatterns = [
     path('agregar-cotizacion/<int:id_pedido>/', views.AgregarCotizacion, name='AgregarCotizacion'),
     path('seleccionar-cotizacion/<int:id_cotizacion>/', views.SeleccionarCotizacion, name='SeleccionarCotizacion'),
     
-    # Vista para visualizar documentos (PDF, DOC, DOCX)
+    # Vista para visualizar documentos
     path('documento/<int:cotizacion_id>/', views.ver_documento, name='ver_documento'),
 
     # Entrega
@@ -46,11 +46,17 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
 
     # ── Entrega de útiles ──
-    path('entrega-utiles/',                       Entregautiles.SalonesList.as_view(), name='entrega_utiles'),
-    path('crear-salon/',                          Entregautiles.crear_salon,           name='crear_salon'),
-    path('editar-salon/<int:pk>/',                Entregautiles.editar_salon,          name='editar_salon'),
-    path('salones/eliminar/<int:pk>/',            Entregautiles.eliminar_salon,        name='eliminar_salon'),
-    path('api/salones/<int:salon_id>/alumnos/',   Entregautiles.api_alumnos_salon,     name='api_alumnos_salon'),
+    path('entrega-utiles/',                                 Entregautiles.SalonesList.as_view(),    name='entrega_utiles'),
+    path('crear-salon/',                                    Entregautiles.crear_salon,              name='crear_salon'),
+    path('editar-salon/<int:pk>/',                          Entregautiles.editar_salon,             name='editar_salon'),
+    path('salones/eliminar/<int:pk>/',                      Entregautiles.eliminar_salon,           name='eliminar_salon'),
+    path('salon/<int:pk>/',                                 Entregautiles.detalle_salon,            name='detalle_salon'),
+    path('salon/<int:pk>/importar-excel/',                  Entregautiles.importar_excel_alumnos,   name='importar_excel_alumnos'),
+
+    # ── API alumnos ──
+    path('api/salones/<int:salon_id>/alumnos/',             Entregautiles.api_alumnos_salon,        name='api_alumnos_salon'),
+    path('api/alumnos/<int:alumno_id>/toggle-entrega/',     Entregautiles.api_toggle_entrega,       name='api_toggle_entrega'),
+    path('api/alumnos/<int:alumno_id>/eliminar/',           Entregautiles.api_eliminar_alumno,      name='api_eliminar_alumno'),
 ]
 
 # Servir archivos media en desarrollo
