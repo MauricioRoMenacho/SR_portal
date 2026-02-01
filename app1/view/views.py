@@ -1,22 +1,80 @@
-from django.shortcuts import render, redirect
+# ==============================================================================
+# IMPORTS
+# ==============================================================================
+
+import os
+import json
+import mimetypes
 import pandas as pd
 import openpyxl
-from openpyxl.styles import PatternFill, Font, Alignment
+from datetime import datetime
+
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import logout
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.http import require_POST
+from django.http import JsonResponse, HttpResponse, FileResponse, Http404
+from django.views.decorators.http import require_POST, require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_exempt
+from django.views.decorators.cache import cache_control
 from django.db import models
-import json
-from .models import ProductoAlmacen, Unidad,MovimientoInventario, PedidoCompra
+from django.utils import timezone
+
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+
+from ..models import (
+    ProductoAlmacen, 
+    Unidad, 
+    MovimientoInventario, 
+    PedidoCompra,
+    ItemPedido, 
+    Cotizacion
+)
+
+
+# ==============================================================================
+# VISTAS GENERALES / NAVEGACIÓN
+# ==============================================================================
 
 def inicio(request):
+    """Vista principal del sistema"""
     return render(request, 'home.html')
 
+
 def almacenes(request):
+    """Vista de almacenes"""
     return render(request, 'almacenes.html')
 
+
+def perfil(request):
+    """Vista de perfil de usuario"""
+    return render(request, 'perfil.html')
+
+
+def configuracion(request):
+    """Vista de configuración"""
+    return render(request, 'configuracion.html')
+
+
+def logout_view(request):
+    """Cerrar sesión del usuario"""
+    logout(request)
+    return redirect('inicio')
+
+
+# ==============================================================================
+# INVENTARIO - ALMACÉN GENERAL
+# ==============================================================================
+
 def InventrioAG(request):
+    """Vista de inventario del Almacén General"""
     productos = ProductoAlmacen.objects.filter(ubicacion_almacen='AG').order_by('-fecha_ingreso')
     context = {
         'productos': productos,
@@ -24,53 +82,16 @@ def InventrioAG(request):
     }
     return render(request, 'almacenes/almgeneral/InventarioAG.html', context)
 
+
 def agregar(request):
+    """Vista antigua - usar agregar_producto en su lugar"""
     # Esta vista está mal - deberías usar agregar_producto
     unidades = Unidad.objects.all().order_by('nombre')
     return render(request, 'almacenes/almgeneral/agregar.html', {'unidades': unidades})
 
-def perfil(request):
-    return render(request, 'perfil.html')
-
-def configuracion(request):
-    return render(request, 'configuracion.html')
-
-def logout_view(request):
-    logout(request)
-    return redirect('inicio')
-
-@require_POST
-def crear_unidad(request):
-    try:
-        data = json.loads(request.body)
-        nombre = data.get('nombre', '').strip()
-        abreviatura = data.get('abreviatura', '').strip()
-        
-        if not nombre:
-            return JsonResponse({'success': False, 'error': 'El nombre es requerido'})
-        
-        # Verificar si ya existe
-        if Unidad.objects.filter(nombre__iexact=nombre).exists():
-            return JsonResponse({'success': False, 'error': 'Esta unidad ya existe'})
-        
-        unidad = Unidad.objects.create(
-            nombre=nombre,
-            abreviatura=abreviatura,
-            activo=True  # AGREGA ESTO
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'unidad': {
-                'id': unidad.id,
-                'nombre': unidad.nombre,
-                'abreviatura': unidad.abreviatura
-            }
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
 
 def agregar_producto(request):
+    """Agregar un nuevo producto al inventario"""
     if request.method == 'POST':
         try:
             # DEBUG: Ver qué datos llegan
@@ -107,7 +128,51 @@ def agregar_producto(request):
         'unidades': unidades
     }
     return render(request, 'almacenes/almgeneral/agregar_producto.html', context)
+
+
+# ==============================================================================
+# UNIDADES DE MEDIDA
+# ==============================================================================
+
+@require_POST
+def crear_unidad(request):
+    """Crear nueva unidad de medida (AJAX)"""
+    try:
+        data = json.loads(request.body)
+        nombre = data.get('nombre', '').strip()
+        abreviatura = data.get('abreviatura', '').strip()
+        
+        if not nombre:
+            return JsonResponse({'success': False, 'error': 'El nombre es requerido'})
+        
+        # Verificar si ya existe
+        if Unidad.objects.filter(nombre__iexact=nombre).exists():
+            return JsonResponse({'success': False, 'error': 'Esta unidad ya existe'})
+        
+        unidad = Unidad.objects.create(
+            nombre=nombre,
+            abreviatura=abreviatura,
+            activo=True
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'unidad': {
+                'id': unidad.id,
+                'nombre': unidad.nombre,
+                'abreviatura': unidad.abreviatura
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+# ==============================================================================
+# IMPORTACIÓN / EXPORTACIÓN EXCEL
+# ==============================================================================
+
 def importar_excel(request):
+    """Importar productos desde archivo Excel"""
     if request.method == 'POST' and request.FILES.get('archivo_excel'):
         try:
             archivo = request.FILES['archivo_excel']
@@ -313,11 +378,10 @@ def importar_excel(request):
     return render(request, 'almacenes/importar_excel.html', {
         'unidades_disponibles': unidades_disponibles
     })
+
+
 def descargar_plantilla(request):
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from django.http import HttpResponse
-    
+    """Descargar plantilla Excel para importación de productos"""
     # Crear workbook
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -387,36 +451,14 @@ def descargar_plantilla(request):
     wb.save(response)
     
     return response
-import os
-import json
-import mimetypes
-from datetime import datetime
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.utils import timezone
-from django.http import FileResponse, Http404, HttpResponse
-from django.views.decorators.clickjacking import xframe_options_exempt
-from django.views.decorators.cache import cache_control
-from django.views.decorators.csrf import csrf_exempt
-from reportlab.lib.pagesizes import letter
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from .models import (
-    ProductoAlmacen, 
-    Unidad, 
-    PedidoCompra, 
-    ItemPedido, 
-    Cotizacion,
-    MovimientoInventario
-)
-from django.views.decorators.http import require_http_methods
 
 
-# ========== VISTA PRINCIPAL: LISTA DE PEDIDOS ==========
+# ==============================================================================
+# PEDIDOS DE COMPRA - GESTIÓN PRINCIPAL
+# ==============================================================================
+
 def PedidosCompra(request):
+    """Lista de todos los pedidos de compra"""
     pedidos = PedidoCompra.objects.all()
     context = {
         'pedidos': pedidos,
@@ -425,8 +467,8 @@ def PedidosCompra(request):
     return render(request, 'almacenes/almgeneral/PedidosCompra.html', context)
 
 
-# ========== CREAR NUEVO PEDIDO (WIZARD) ==========
 def CrearPedidoCompra(request):
+    """Crear nuevo pedido de compra (Wizard)"""
     if request.method == 'POST':
         nombre = request.POST.get('nombre')
         descripcion = request.POST.get('descripcion', '')
@@ -491,8 +533,199 @@ def CrearPedidoCompra(request):
     return render(request, 'almacenes/almgeneral/Pedido_Compra/CrearPedidoCompra.html', context)
 
 
-# ========== GENERAR PDF DEL PEDIDO ==========
+def DetallePedido(request, id_pedido):
+    """Ver detalles de un pedido específico"""
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    items = pedido.items.all()
+    
+    context = {
+        'pedido': pedido,
+        'items': items,
+        'total_items': items.count(),
+    }
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/DetallePedido.html', context)
+
+
+def EditarPedido(request, id_pedido):
+    """Editar un pedido de compra existente"""
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    productos = ProductoAlmacen.objects.all().order_by('nombre')
+    
+    if request.method == 'POST':
+        # Obtener datos del formulario
+        nombre = request.POST.get('nombre', '').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+        estado = request.POST.get('estado', '').strip()
+        archivo = request.FILES.get('archivo')
+        
+        # Validaciones
+        if not nombre:
+            messages.error(request, 'El nombre del pedido es obligatorio')
+            return redirect('EditarPedido', id_pedido=id_pedido)
+        
+        if not estado:
+            messages.error(request, 'El estado es obligatorio')
+            return redirect('EditarPedido', id_pedido=id_pedido)
+        
+        # Actualizar campos del pedido
+        pedido.nombre = nombre
+        pedido.descripcion = descripcion
+        pedido.estado = estado
+        
+        # Solo actualizar el archivo si se subió uno nuevo
+        if archivo:
+            # Validar tamaño (10MB máximo)
+            if archivo.size > 10 * 1024 * 1024:
+                messages.error(request, 'El archivo es demasiado grande. Máximo 10MB permitido.')
+                return redirect('EditarPedido', id_pedido=id_pedido)
+            
+            # Validar extensión
+            extension = archivo.name.split('.')[-1].lower()
+            if extension not in ['pdf', 'doc', 'docx']:
+                messages.error(request, 'Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.')
+                return redirect('EditarPedido', id_pedido=id_pedido)
+            
+            pedido.archivo = archivo
+        
+        try:
+            pedido.save()
+            messages.success(request, f'Pedido "{pedido.nombre}" actualizado exitosamente')
+            return redirect('EditarPedido', id_pedido=id_pedido)
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el pedido: {str(e)}')
+            return redirect('EditarPedido', id_pedido=id_pedido)
+    
+    context = {
+        'pedido': pedido,
+        'productos': productos,
+    }
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/EditarPedido.html', context)
+
+
+@require_http_methods(["GET", "POST"])
+def EliminarPedido(request, id_pedido):
+    """Eliminar un pedido de compra"""
+    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+    
+    # Calcular total de cotizaciones
+    pedido.total_cotizaciones = pedido.cotizaciones.count()
+    
+    if request.method == 'POST':
+        try:
+            nombre_pedido = pedido.nombre
+            pedido.delete()
+            
+            # Si es petición AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': f'Pedido "{nombre_pedido}" eliminado'})
+            
+            # Si es petición normal
+            messages.success(request, f'Pedido "{nombre_pedido}" eliminado exitosamente')
+            return redirect('PedidosCompra')
+        except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': str(e)}, status=400)
+            
+            messages.error(request, f'Error al eliminar el pedido: {str(e)}')
+            return redirect('PedidosCompra')
+    
+    # GET request - mostrar página de confirmación
+    return render(request, 'almacenes/almgeneral/Pedido_Compra/Eliminarpedido.html', {
+        'pedido': pedido
+    })
+
+
+# ==============================================================================
+# PEDIDOS DE COMPRA - GESTIÓN DE ITEMS
+# ==============================================================================
+
+def AgregarItemPedido(request, id_pedido):
+    """Agregar un item/producto al pedido"""
+    if request.method == 'POST':
+        pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
+        
+        producto_id = request.POST.get('producto_id')
+        cantidad = request.POST.get('cantidad')
+        precio_unitario = request.POST.get('precio_unitario')
+        observaciones = request.POST.get('observaciones', '').strip()
+        
+        try:
+            producto = ProductoAlmacen.objects.get(id_producto=producto_id)
+            
+            ItemPedido.objects.create(
+                pedido=pedido,
+                producto=producto,
+                cantidad_solicitada=int(cantidad),
+                precio_unitario=float(precio_unitario),
+                observaciones=observaciones
+            )
+            
+            messages.success(request, f'Producto "{producto.nombre}" agregado al pedido')
+        except Exception as e:
+            messages.error(request, f'Error al agregar el producto: {str(e)}')
+        
+        return redirect('EditarPedido', id_pedido=id_pedido)
+
+
+def EditarItemPedido(request, id_pedido):
+    """Editar un item del pedido"""
+    if request.method == 'POST':
+        item_id = request.POST.get('item_id')
+        item = get_object_or_404(ItemPedido, id_item=item_id)
+        
+        producto_id = request.POST.get('producto_id')
+        cantidad = request.POST.get('cantidad')
+        precio_unitario = request.POST.get('precio_unitario')
+        observaciones = request.POST.get('observaciones', '').strip()
+        
+        try:
+            producto = ProductoAlmacen.objects.get(id_producto=producto_id)
+            
+            item.producto = producto
+            item.cantidad_solicitada = int(cantidad)
+            item.precio_unitario = float(precio_unitario)
+            item.observaciones = observaciones
+            item.save()
+            
+            messages.success(request, f'Producto "{producto.nombre}" actualizado')
+        except Exception as e:
+            messages.error(request, f'Error al actualizar el producto: {str(e)}')
+        
+        return redirect('EditarPedido', id_pedido=id_pedido)
+
+
+def ObtenerItemPedido(request, item_id):
+    """Obtener datos de un item para edición (AJAX)"""
+    try:
+        item = ItemPedido.objects.get(id_item=item_id)
+        data = {
+            'producto_id': item.producto.id_producto,
+            'cantidad': item.cantidad_solicitada,
+            'precio_unitario': str(item.precio_unitario),
+            'observaciones': item.observaciones or '',
+        }
+        return JsonResponse(data)
+    except ItemPedido.DoesNotExist:
+        return JsonResponse({'error': 'Item no encontrado'}, status=404)
+
+
+@require_POST
+def EliminarItemPedido(request, item_id):
+    """Eliminar un item del pedido"""
+    try:
+        item = ItemPedido.objects.get(id_item=item_id)
+        item.delete()
+        return JsonResponse({'success': True})
+    except ItemPedido.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Item no encontrado'}, status=404)
+
+
+# ==============================================================================
+# PEDIDOS DE COMPRA - GENERACIÓN DE PDF
+# ==============================================================================
+
 def GenerarPDFPedido(request):
+    """Generar PDF del pedido de compra"""
     if request.method == 'POST':
         try:
             data = json.loads(request.POST.get('data'))
@@ -628,189 +861,12 @@ def GenerarPDFPedido(request):
     return redirect('CrearPedidoCompra')
 
 
-# ========== VER DETALLES DEL PEDIDO ==========
-def DetallePedido(request, id_pedido):
-    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
-    items = pedido.items.all()
-    
-    context = {
-        'pedido': pedido,
-        'items': items,
-        'total_items': items.count(),
-    }
-    return render(request, 'almacenes/almgeneral/Pedido_Compra/DetallePedido.html', context)
+# ==============================================================================
+# COTIZACIONES
+# ==============================================================================
 
-
-# ========== EDITAR PEDIDO ==========
-def EditarPedido(request, id_pedido):
-    """Vista para editar un pedido de compra existente"""
-    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
-    productos = ProductoAlmacen.objects.all().order_by('nombre')
-    
-    if request.method == 'POST':
-        # Obtener datos del formulario
-        nombre = request.POST.get('nombre', '').strip()
-        descripcion = request.POST.get('descripcion', '').strip()
-        estado = request.POST.get('estado', '').strip()
-        archivo = request.FILES.get('archivo')
-        
-        # Validaciones
-        if not nombre:
-            messages.error(request, 'El nombre del pedido es obligatorio')
-            return redirect('EditarPedido', id_pedido=id_pedido)
-        
-        if not estado:
-            messages.error(request, 'El estado es obligatorio')
-            return redirect('EditarPedido', id_pedido=id_pedido)
-        
-        # Actualizar campos del pedido
-        pedido.nombre = nombre
-        pedido.descripcion = descripcion
-        pedido.estado = estado
-        
-        # Solo actualizar el archivo si se subió uno nuevo
-        if archivo:
-            # Validar tamaño (10MB máximo)
-            if archivo.size > 10 * 1024 * 1024:
-                messages.error(request, 'El archivo es demasiado grande. Máximo 10MB permitido.')
-                return redirect('EditarPedido', id_pedido=id_pedido)
-            
-            # Validar extensión
-            extension = archivo.name.split('.')[-1].lower()
-            if extension not in ['pdf', 'doc', 'docx']:
-                messages.error(request, 'Formato no permitido. Solo se aceptan archivos PDF, DOC o DOCX.')
-                return redirect('EditarPedido', id_pedido=id_pedido)
-            
-            pedido.archivo = archivo
-        
-        try:
-            pedido.save()
-            messages.success(request, f'Pedido "{pedido.nombre}" actualizado exitosamente')
-            return redirect('EditarPedido', id_pedido=id_pedido)
-        except Exception as e:
-            messages.error(request, f'Error al actualizar el pedido: {str(e)}')
-            return redirect('EditarPedido', id_pedido=id_pedido)
-    
-    context = {
-        'pedido': pedido,
-        'productos': productos,
-    }
-    return render(request, 'almacenes/almgeneral/Pedido_Compra/EditarPedido.html', context)
-
-
-def AgregarItemPedido(request, id_pedido):
-    """Agregar un item/producto al pedido"""
-    if request.method == 'POST':
-        pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
-        
-        producto_id = request.POST.get('producto_id')
-        cantidad = request.POST.get('cantidad')
-        precio_unitario = request.POST.get('precio_unitario')
-        observaciones = request.POST.get('observaciones', '').strip()
-        
-        try:
-            producto = ProductoAlmacen.objects.get(id_producto=producto_id)
-            
-            ItemPedido.objects.create(
-                pedido=pedido,
-                producto=producto,
-                cantidad_solicitada=int(cantidad),
-                precio_unitario=float(precio_unitario),
-                observaciones=observaciones
-            )
-            
-            messages.success(request, f'Producto "{producto.nombre}" agregado al pedido')
-        except Exception as e:
-            messages.error(request, f'Error al agregar el producto: {str(e)}')
-        
-        return redirect('EditarPedido', id_pedido=id_pedido)
-
-
-def EditarItemPedido(request, id_pedido):
-    """Editar un item del pedido"""
-    if request.method == 'POST':
-        item_id = request.POST.get('item_id')
-        item = get_object_or_404(ItemPedido, id_item=item_id)
-        
-        producto_id = request.POST.get('producto_id')
-        cantidad = request.POST.get('cantidad')
-        precio_unitario = request.POST.get('precio_unitario')
-        observaciones = request.POST.get('observaciones', '').strip()
-        
-        try:
-            producto = ProductoAlmacen.objects.get(id_producto=producto_id)
-            
-            item.producto = producto
-            item.cantidad_solicitada = int(cantidad)
-            item.precio_unitario = float(precio_unitario)
-            item.observaciones = observaciones
-            item.save()
-            
-            messages.success(request, f'Producto "{producto.nombre}" actualizado')
-        except Exception as e:
-            messages.error(request, f'Error al actualizar el producto: {str(e)}')
-        
-        return redirect('EditarPedido', id_pedido=id_pedido)
-
-
-def ObtenerItemPedido(request, item_id):
-    """Obtener datos de un item para edición (AJAX)"""
-    try:
-        item = ItemPedido.objects.get(id_item=item_id)
-        data = {
-            'producto_id': item.producto.id_producto,
-            'cantidad': item.cantidad_solicitada,
-            'precio_unitario': str(item.precio_unitario),
-            'observaciones': item.observaciones or '',
-        }
-        return JsonResponse(data)
-    except ItemPedido.DoesNotExist:
-        return JsonResponse({'error': 'Item no encontrado'}, status=404)
-
-
-@require_POST
-def EliminarItemPedido(request, item_id):
-    """Eliminar un item del pedido"""
-    try:
-        item = ItemPedido.objects.get(id_item=item_id)
-        item.delete()
-        return JsonResponse({'success': True})
-    except ItemPedido.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Item no encontrado'}, status=404)
-    
-@require_http_methods(["GET", "POST"])
-def EliminarPedido(request, id_pedido):
-    """Eliminar un pedido de compra"""
-    pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
-    
-    # Calcular total de cotizaciones
-    pedido.total_cotizaciones = pedido.cotizaciones.count()
-    
-    if request.method == 'POST':
-        try:
-            nombre_pedido = pedido.nombre
-            pedido.delete()
-            
-            # Si es petición AJAX
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'success': True, 'message': f'Pedido "{nombre_pedido}" eliminado'})
-            
-            # Si es petición normal
-            messages.success(request, f'Pedido "{nombre_pedido}" eliminado exitosamente')
-            return redirect('PedidosCompra')
-        except Exception as e:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'error': str(e)}, status=400)
-            
-            messages.error(request, f'Error al eliminar el pedido: {str(e)}')
-            return redirect('PedidosCompra')
-    
-    # GET request - mostrar página de confirmación
-    return render(request, 'almacenes/almgeneral/Pedido_Compra/Eliminarpedido.html', {
-        'pedido': pedido
-    })
-# ========== VER COTIZACIONES DEL PEDIDO ==========
 def CotizacionesPedido(request, id_pedido):
+    """Ver cotizaciones asociadas a un pedido"""
     pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
     cotizaciones = pedido.cotizaciones.all()
     
@@ -822,8 +878,8 @@ def CotizacionesPedido(request, id_pedido):
     return render(request, 'almacenes/almgeneral/Pedido_Compra/CotizacionesPedido.html', context)
 
 
-# ========== AGREGAR COTIZACIÓN ==========
 def AgregarCotizacion(request, id_pedido):
+    """Agregar nueva cotización a un pedido"""
     pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
     
     if request.method == 'POST':
@@ -871,8 +927,8 @@ def AgregarCotizacion(request, id_pedido):
     return render(request, 'almacenes/almgeneral/Pedido_Compra/AgregarCotizacion.html', context)
 
 
-# ========== SELECCIONAR COTIZACIÓN GANADORA ==========
 def SeleccionarCotizacion(request, id_cotizacion):
+    """Seleccionar cotización ganadora"""
     cotizacion = get_object_or_404(Cotizacion, id_cotizacion=id_cotizacion)
     pedido = cotizacion.pedido
     
@@ -897,8 +953,8 @@ def SeleccionarCotizacion(request, id_cotizacion):
     return render(request, 'almacenes/almgeneral/Pedido_Compra/SeleccionarCotizacion.html', context)
 
 
-# ========== MARCAR COMO ENTREGADO ==========
 def MarcarEntregado(request, id_pedido):
+    """Marcar pedido como entregado"""
     pedido = get_object_or_404(PedidoCompra, id_pedido=id_pedido)
     
     if pedido.estado != 'COMP':
@@ -937,7 +993,6 @@ def MarcarEntregado(request, id_pedido):
     return render(request, 'almacenes/almgeneral/Pedido_Compra/MarcarEntregado.html', context)
 
 
-# ========== VER DOCUMENTO ==========
 @xframe_options_exempt
 @cache_control(max_age=3600, public=True)
 def ver_documento(request, cotizacion_id):
@@ -977,69 +1032,9 @@ def ver_documento(request, cotizacion_id):
         raise Http404(f"Error: {str(e)}")
 
 
-# ========== AGREGAR PRODUCTO (REUTILIZADO) ==========
-def agregar_producto(request):
-    if request.method == 'POST':
-        try:
-            unidad_nombre = request.POST.get('unidad')
-            unidad = Unidad.objects.get(nombre=unidad_nombre)
-            
-            producto = ProductoAlmacen.objects.create(
-                nombre=request.POST.get('nombre'),
-                descripcion=request.POST.get('descripcion'),
-                ubicacion_almacen=request.POST.get('ubicacion_almacen'),
-                estante=request.POST.get('estante'),
-                cantidad=request.POST.get('cantidad'),
-                unidad=unidad,
-                estado=request.POST.get('estado'),
-                observaciones=request.POST.get('observaciones', '')
-            )
-            
-            messages.success(request, f'Producto "{producto.nombre}" agregado exitosamente')
-            return redirect('InventarioAG')
-            
-        except Exception as e:
-            messages.error(request, f'Error al agregar producto: {str(e)}')
-    
-    unidades = Unidad.objects.all().order_by('nombre')
-    context = {
-        'unidades': unidades
-    }
-    return render(request, 'almacenes/almgeneral/agregar_producto.html', context)
-
-
-# ========== CREAR UNIDAD (AJAX) ==========
-@csrf_exempt
-def crear_unidad(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            nombre = data.get('nombre')
-            abreviatura = data.get('abreviatura', '')
-            
-            if not nombre:
-                return JsonResponse({'success': False, 'error': 'El nombre es obligatorio'})
-            
-            if Unidad.objects.filter(nombre=nombre).exists():
-                return JsonResponse({'success': False, 'error': 'Esta unidad ya existe'})
-            
-            unidad = Unidad.objects.create(
-                nombre=nombre,
-                abreviatura=abreviatura
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'unidad': {
-                    'nombre': unidad.nombre,
-                    'abreviatura': unidad.abreviatura
-                }
-            })
-            
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    
-    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+# ==============================================================================
+# API / AJAX ENDPOINTS
+# ==============================================================================
 
 def api_ultimo_producto(request):
     """API para obtener el último producto creado"""
@@ -1059,6 +1054,3 @@ def api_ultimo_producto(request):
         
     except ProductoAlmacen.DoesNotExist:
         return JsonResponse({'error': 'No hay productos'}, status=404)
-
-
-# ===== AGREGAR ESTA RUTA A urls.py =====

@@ -1,0 +1,685 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Editar Salón - Sistema Escolar{% endblock %}
+
+{% block content %}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    /* ==================== CONTAINER ==================== */
+    .almacenes-container {
+        padding: 30px;
+        background-color: transparent;
+        min-height: calc(100vh - 60px);
+    }
+
+    /* ==================== HEADER ==================== */
+    .page-header {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .btn-back {
+        width: 44px;
+        height: 44px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: #666;
+        text-decoration: none;
+        font-size: 18px;
+    }
+
+    .btn-back:hover {
+        background: #f1f8f4;
+        border-color: #148129;
+        color: #148129;
+        transform: translateX(-3px);
+    }
+
+    .header-info h2 {
+        font-size: 24px;
+        margin: 0;
+        color: #333;
+        font-weight: 600;
+    }
+
+    .header-info p {
+        font-size: 13px;
+        color: #999;
+        margin-top: 3px;
+    }
+
+    /* ==================== LAYOUT DOS COLUMNAS ==================== */
+    .edit-layout {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 24px;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    /* ==================== FORM CARD ==================== */
+    .form-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+
+    .form-card-header {
+        background: #004e89;
+        color: white;
+        padding: 22px 28px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .form-card-header i {
+        font-size: 20px;
+        opacity: 0.9;
+    }
+
+    .form-card-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .form-card-header p {
+        font-size: 12px;
+        opacity: 0.75;
+        margin-top: 2px;
+    }
+
+    .form-body {
+        padding: 28px;
+    }
+
+    /* ==================== FORM GROUPS ==================== */
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-bottom: 20px;
+    }
+
+    label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #444;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    label .required {
+        color: #ef476f;
+        margin-left: 3px;
+    }
+
+    /* ==================== INPUTS ==================== */
+    .form-input,
+    .form-select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1.5px solid #ddd;
+        border-radius: 10px;
+        font-size: 14px;
+        color: #333;
+        background: #fafafa;
+        transition: all 0.25s;
+        font-family: inherit;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+        outline: none;
+        border-color: #004e89;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(0, 78, 137, 0.12);
+    }
+
+    .form-input::placeholder {
+        color: #aaa;
+    }
+
+    .form-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23666' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        background-size: 12px;
+        padding-right: 40px;
+        cursor: pointer;
+    }
+
+    .form-input.error,
+    .form-select.error {
+        border-color: #ef476f;
+        background: #fff5f6;
+    }
+
+    .form-input.error:focus,
+    .form-select.error:focus {
+        box-shadow: 0 0 0 3px rgba(239, 71, 111, 0.12);
+    }
+
+    .error-msg {
+        font-size: 12px;
+        color: #ef476f;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .helper-text {
+        font-size: 12px;
+        color: #999;
+    }
+
+    /* ==================== BUTTONS ==================== */
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+        margin-top: 4px;
+    }
+
+    .btn {
+        padding: 13px 28px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.25s;
+        text-decoration: none;
+        white-space: nowrap;
+        font-family: inherit;
+    }
+
+    .btn-primary {
+        background: #004e89;
+        color: white;
+        box-shadow: 0 2px 6px rgba(0, 78, 137, 0.25);
+        flex: 1;
+        justify-content: center;
+    }
+
+    .btn-primary:hover {
+        background: #003a68;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 78, 137, 0.3);
+    }
+
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    .btn-cancel {
+        background: white;
+        color: #555;
+        border: 1.5px solid #ddd;
+        text-decoration: none;
+    }
+
+    .btn-cancel:hover {
+        background: #f5f5f5;
+        border-color: #bbb;
+    }
+
+    .btn-danger {
+        background: white;
+        color: #ef476f;
+        border: 1.5px solid #ef476f;
+        width: 100%;
+        justify-content: center;
+        margin-top: 12px;
+    }
+
+    .btn-danger:hover {
+        background: #ef476f;
+        color: white;
+    }
+
+    /* ==================== SIDEBAR / INFO PANEL ==================== */
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .info-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+
+    .info-card-header {
+        padding: 18px 20px;
+        background: #f9f9f9;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-card-header i {
+        color: #148129;
+        font-size: 16px;
+    }
+
+    .info-card-header h4 {
+        font-size: 15px;
+        color: #333;
+        font-weight: 600;
+    }
+
+    .info-card-body {
+        padding: 20px;
+    }
+
+    /* ── Previa del salón ── */
+    .salon-preview {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: #f1f8f4;
+        border-radius: 12px;
+        border: 1px solid #c8e6c9;
+    }
+
+    .salon-preview-icon {
+        width: 56px;
+        height: 56px;
+        background: #148129;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .salon-preview-info h4 {
+        font-size: 16px;
+        color: #148129;
+        font-weight: 600;
+    }
+
+    .salon-preview-info p {
+        font-size: 12px;
+        color: #666;
+        margin-top: 2px;
+    }
+
+    /* ── Estadísticas rápidas ── */
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .stat-row:last-child {
+        border-bottom: none;
+    }
+
+    .stat-row-label {
+        font-size: 13px;
+        color: #666;
+    }
+
+    .stat-row-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .stat-row-value .badge-mini {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-mini.green {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-mini.yellow {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    /* ==================== MENSAJES ==================== */
+    .messages {
+        list-style: none;
+        margin-bottom: 20px;
+        max-width: 1100px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .messages li {
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .messages .error {
+        background: #fff0f2;
+        color: #ef476f;
+        border: 1px solid #f8c0cc;
+    }
+
+    .messages .success {
+        background: #f0fff4;
+        color: #148129;
+        border: 1px solid #c3e6cb;
+    }
+
+    /* ==================== RESPONSIVE ==================== */
+    @media (max-width: 900px) {
+        .edit-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+            order: -1;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        .sidebar .info-card {
+            flex: 1;
+            min-width: 260px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .almacenes-container {
+            padding: 15px;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .form-body {
+            padding: 22px 18px;
+        }
+
+        .sidebar {
+            flex-direction: column;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .btn-cancel {
+            text-align: center;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="almacenes-container">
+    <!-- HEADER -->
+    <header class="page-header">
+        <a href="{% url 'entrega_utiles' %}" class="btn-back" title="Regresar">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div class="header-info">
+            <h2>Editar Salón</h2>
+            <p>Modificando: {{ salon.nombre }}</p>
+        </div>
+    </header>
+
+    <!-- MENSAJES -->
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}">
+            <i class="fa-solid fa-{% if message.tags == 'success' %}check-circle{% else %}circle-exclamation{% endif %}"></i>
+            {{ message }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <!-- LAYOUT -->
+    <div class="edit-layout">
+
+        <!-- COLUMNA PRINCIPAL: FORMULARIO -->
+        <div class="form-card">
+            <div class="form-card-header">
+                <i class="fa-solid fa-pen"></i>
+                <div>
+                    <h3>Editar Información</h3>
+                    <p>Actualiza los datos del salón</p>
+                </div>
+            </div>
+
+            <div class="form-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="form-row">
+                        <!-- Nombre -->
+                        <div class="form-group">
+                            <label for="id_nombre">Nombre del Salón <span class="required">*</span></label>
+                            <input
+                                type="text"
+                                name="nombre"
+                                id="id_nombre"
+                                class="form-input {% if form.nombre.errors %}error{% endif %}"
+                                placeholder="Ej: Salón 1A"
+                                value="{{ form.nombre.value|default_if_none:'' }}"
+                            >
+                            {% if form.nombre.errors %}
+                            <span class="error-msg"><i class="fa-solid fa-circle-exclamation"></i> {{ form.nombre.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Código -->
+                        <div class="form-group">
+                            <label for="id_codigo">Código <span class="required">*</span></label>
+                            <input
+                                type="text"
+                                name="codigo"
+                                id="id_codigo"
+                                class="form-input {% if form.codigo.errors %}error{% endif %}"
+                                placeholder="Ej: 1A"
+                                maxlength="10"
+                                value="{{ form.codigo.value|default_if_none:'' }}"
+                            >
+                            {% if form.codigo.errors %}
+                            <span class="error-msg"><i class="fa-solid fa-circle-exclamation"></i> {{ form.codigo.errors.0 }}</span>
+                            {% endif %}
+                            <span class="helper-text">Identificador único corto del salón</span>
+                        </div>
+                    </div>
+
+                    <!-- Profesora -->
+                    <div class="form-group">
+                        <label for="id_profesora">Profesora <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            name="profesora"
+                            id="id_profesora"
+                            class="form-input {% if form.profesora.errors %}error{% endif %}"
+                            placeholder="Ej: María López"
+                            value="{{ form.profesora.value|default_if_none:'' }}"
+                        >
+                        {% if form.profesora.errors %}
+                        <span class="error-msg"><i class="fa-solid fa-circle-exclamation"></i> {{ form.profesora.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-row">
+                        <!-- Grado -->
+                        <div class="form-group">
+                            <label for="id_grado">Grado <span class="required">*</span></label>
+                            <select
+                                name="grado"
+                                id="id_grado"
+                                class="form-select {% if form.grado.errors %}error{% endif %}"
+                            >
+                                <option value="" {% if not form.grado.value %} selected{% endif %}>— Selecciona un grado —</option>
+                                {% for value, label in form.fields.grado.choices %}
+                                    {% if value != '' %}
+                                    <option value="{{ value }}" {% if form.grado.value == value|stringformat:"s" %} selected{% endif %}>{{ label }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            {% if form.grado.errors %}
+                            <span class="error-msg"><i class="fa-solid fa-circle-exclamation"></i> {{ form.grado.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Turno -->
+                        <div class="form-group">
+                            <label for="id_turno">Turno <span class="required">*</span></label>
+                            <select
+                                name="turno"
+                                id="id_turno"
+                                class="form-select {% if form.turno.errors %}error{% endif %}"
+                            >
+                                {% for value, label in form.fields.turno.choices %}
+                                <option value="{{ value }}" {% if form.turno.value == value %} selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.turno.errors %}
+                            <span class="error-msg"><i class="fa-solid fa-circle-exclamation"></i> {{ form.turno.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- ACCIONES -->
+                    <div class="form-actions">
+                        <a href="{% url 'entrega_utiles' %}" class="btn btn-cancel">
+                            <i class="fa-solid fa-xmark"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- COLUMNA LATERAL: INFO DEL SALÓN -->
+        <aside class="sidebar">
+            <!-- Preview actual -->
+            <div class="info-card">
+                <div class="info-card-header">
+                    <i class="fa-solid fa-eye"></i>
+                    <h4>Vista Actual</h4>
+                </div>
+                <div class="info-card-body">
+                    <div class="salon-preview">
+                        <div class="salon-preview-icon">{{ salon.codigo }}</div>
+                        <div class="salon-preview-info">
+                            <h4>{{ salon.nombre }}</h4>
+                            <p>{{ salon.profesora }} · {{ salon.get_grado_display }} · {{ salon.turno }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas rápidas -->
+            <div class="info-card">
+                <div class="info-card-header">
+                    <i class="fa-solid fa-chart-bar"></i>
+                    <h4>Estadísticas</h4>
+                </div>
+                <div class="info-card-body">
+                    <div class="stat-row">
+                        <span class="stat-row-label">Total alumnos</span>
+                        <span class="stat-row-value">{{ salon.total_alumnos }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">Entregas completadas</span>
+                        <span class="stat-row-value">
+                            <span class="badge-mini green">
+                                <i class="fa-solid fa-check"></i>
+                                {{ salon.alumnos.filter.entrega_completada }}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">Pendientes</span>
+                        <span class="stat-row-value">
+                            <span class="badge-mini yellow">
+                                <i class="fa-solid fa-clock"></i>
+                                {{ salon.alumnos.count }} pendientes
+                            </span>
+                        </span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-row-label">Fecha creación</span>
+                        <span class="stat-row-value">{{ salon.fecha_creacion|date:"d/m/Y" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eliminar salón -->
+            <div class="info-card">
+                <div class="info-card-header" style="border-bottom-color: #fde8ec;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: #ef476f;"></i>
+                    <h4 style="color: #ef476f;">Zona peligrosa</h4>
+                </div>
+                <div class="info-card-body">
+                    <p style="font-size: 13px; color: #666; margin-bottom: 14px;">
+                        Eliminar este salón eliminará todos los alumnos asociados. Esta acción no se puede deshacer.
+                    </p>
+                    <form method="post" action="{% url 'eliminar_salon' salon.id %}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar el salón {{ salon.nombre }}? Esta acción no se puede deshacer.')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fa-solid fa-trash"></i> Eliminar Salón
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+</div>
+
+{% endblock %}

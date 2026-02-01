@@ -1,0 +1,1015 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Entrega de Útiles - Sistema Escolar{% endblock %}
+
+{% block content %}
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    /* ==================== CONTAINER ==================== */
+    .almacenes-container {
+        padding: 30px;
+        background-color: transparent;
+        min-height: calc(100vh - 60px);
+    }
+    
+    /* ==================== HEADER CON BOTÓN REGRESAR ==================== */
+    .page-header {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .btn-back {
+        width: 44px;
+        height: 44px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: #666;
+        text-decoration: none;
+        font-size: 18px;
+    }
+    
+    .btn-back:hover {
+        background: #f1f8f4;
+        border-color: #148129;
+        color: #148129;
+        transform: translateX(-3px);
+    }
+    
+    /* ==================== TÍTULOS DE SECCIÓN ==================== */
+    .section-title {
+        font-size: 24px;
+        margin: 0;
+        color: #333;
+        font-weight: 600;
+    }
+    
+    /* ==================== STATS CARDS ==================== */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-left: 4px solid #148129;
+        transition: all 0.3s;
+    }
+    
+    .stat-card:nth-child(2) {
+        border-left-color: #004e89;
+    }
+    
+    .stat-card:nth-child(3) {
+        border-left-color: #06d6a0;
+    }
+    
+    .stat-card:nth-child(4) {
+        border-left-color: #ffd23f;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .stat-label {
+        font-size: 13px;
+        color: #666;
+        font-weight: 500;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #333;
+        line-height: 1;
+    }
+    
+    /* ==================== TOOLBAR ==================== */
+    .toolbar {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .toolbar-left {
+        display: flex;
+        gap: 15px;
+        flex: 1;
+        flex-wrap: wrap;
+    }
+    
+    .toolbar-right {
+        display: flex;
+        gap: 10px;
+    }
+    
+    /* ==================== SEARCH BAR ==================== */
+    .search-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 280px;
+        max-width: 400px;
+    }
+    
+    .search-wrapper i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+        font-size: 1rem;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 12px 16px 12px 2.75rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #333;
+        background: #f9f9f9;
+        transition: all 0.3s;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #148129;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(20, 129, 41, 0.1);
+    }
+    
+    .search-input::placeholder {
+        color: #999;
+    }
+    
+    /* ==================== FILTER SELECT ==================== */
+    .filter-select {
+        padding: 12px 35px 12px 16px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #333;
+        background: #f9f9f9;
+        background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23666' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 12px;
+        cursor: pointer;
+        appearance: none;
+        transition: all 0.3s;
+    }
+    
+    .filter-select:focus {
+        outline: none;
+        border-color: #148129;
+        background-color: white;
+        box-shadow: 0 0 0 3px rgba(20, 129, 41, 0.1);
+    }
+    
+    /* ==================== BUTTONS ==================== */
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    
+    .btn-primary {
+        background: #148129;
+        color: white;
+        box-shadow: 0 2px 4px rgba(20, 129, 41, 0.2);
+    }
+    
+    .btn-primary:hover {
+        background: #106020;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(20, 129, 41, 0.3);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+    
+    .btn-secondary {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+    
+    .btn-secondary:hover {
+        background: #f1f8f4;
+        border-color: #148129;
+    }
+    
+    .btn-icon {
+        padding: 12px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* ==================== TABLE CARD ==================== */
+    .table-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table thead {
+        background: #f9f9f9;
+        border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .data-table th {
+        padding: 16px 20px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+    
+    .data-table tbody tr {
+        border-bottom: 1px solid #e0e0e0;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .data-table tbody tr:hover {
+        background: #f1f8f4;
+        transform: scale(1.002);
+    }
+    
+    .data-table tbody tr:active {
+        transform: scale(0.998);
+    }
+    
+    .data-table td {
+        padding: 16px 20px;
+        font-size: 14px;
+        color: #333;
+    }
+    
+    /* ==================== COLUMNA DE SALÓN ==================== */
+    .salon-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .salon-icon {
+        width: 48px;
+        height: 48px;
+        background: #e8f5e9;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #148129;
+        font-weight: 700;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+    
+    .salon-info h4 {
+        font-size: 15px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 2px;
+    }
+    
+    .salon-info p {
+        font-size: 12px;
+        color: #999;
+    }
+    
+    /* ==================== COLUMNA DE PROFESORA ==================== */
+    .teacher-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .teacher-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #148129;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+    
+    .teacher-name {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    /* ==================== BADGE DE CANTIDAD ==================== */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        background: #f9f9f9;
+        color: #333;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .badge i {
+        font-size: 11px;
+    }
+    
+    /* ==================== FECHA ==================== */
+    .date-cell {
+        color: #666;
+        font-size: 13px;
+    }
+    
+    .date-cell i {
+        margin-right: 6px;
+        color: #999;
+    }
+    
+    /* ==================== ACCIONES ==================== */
+    .actions-cell {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #f9f9f9;
+        color: #666;
+    }
+    
+    .action-btn:hover {
+        transform: scale(1.1);
+    }
+    
+    .action-btn.edit:hover {
+        background: #004e89;
+        color: white;
+    }
+    
+    .action-btn.delete:hover {
+        background: #ef476f;
+        color: white;
+    }
+    
+    .action-btn.view:hover {
+        background: #06d6a0;
+        color: white;
+    }
+    
+    /* ==================== PAGINATION ==================== */
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        background: #f9f9f9;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .pagination-info {
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .pagination-controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    .page-btn {
+        width: 36px;
+        height: 36px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        color: #333;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .page-btn:hover:not(.active):not(:disabled) {
+        border-color: #148129;
+        background: #f1f8f4;
+    }
+    
+    .page-btn.active {
+        background: #148129;
+        color: white;
+        border-color: #148129;
+    }
+    
+    .page-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    
+    /* ==================== EMPTY STATE ==================== */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 12px;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+    
+    .empty-state h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .empty-state p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+    
+    /* ==================== MODAL OVERLAY ==================== */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+    
+    .modal-overlay.active {
+        display: flex;
+    }
+    
+    .modal {
+        background: white;
+        border-radius: 16px;
+        max-width: 900px;
+        width: 100%;
+        max-height: 90vh;
+        overflow: hidden;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
+        animation: modalSlideUp 0.4s ease-out;
+    }
+    
+    @keyframes modalSlideUp {
+        from {
+            opacity: 0;
+            transform: translateY(50px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    
+    .modal-header {
+        padding: 24px;
+        background: #148129;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .modal-header h2 {
+        font-size: 22px;
+        font-weight: 700;
+    }
+    
+    .modal-close {
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    
+    .modal-close:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: rotate(90deg);
+    }
+    
+    .modal-body {
+        padding: 24px;
+        max-height: calc(90vh - 120px);
+        overflow-y: auto;
+    }
+    
+    /* ==================== LISTA DE ESTUDIANTES ==================== */
+    .students-list {
+        display: grid;
+        gap: 15px;
+    }
+    
+    .student-card {
+        background: #f9f9f9;
+        padding: 16px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+    
+    .student-card:hover {
+        background: white;
+        border-color: #148129;
+        transform: translateX(4px);
+    }
+    
+    .student-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: #ffd23f;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 18px;
+        color: #333;
+        flex-shrink: 0;
+    }
+    
+    .student-info {
+        flex: 1;
+    }
+    
+    .student-info h4 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+    }
+    
+    .student-meta {
+        font-size: 13px;
+        color: #666;
+    }
+    
+    .student-status {
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .student-status.entregado {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .student-status.pendiente {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    /* ==================== RESPONSIVE ==================== */
+    @media (max-width: 768px) {
+        .almacenes-container {
+            padding: 15px;
+        }
+        
+        .page-header {
+            flex-wrap: wrap;
+        }
+        
+        .section-title {
+            font-size: 20px;
+        }
+        
+        .toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .toolbar-left {
+            flex-direction: column;
+        }
+        
+        .search-wrapper {
+            max-width: 100%;
+        }
+        
+        .toolbar-right {
+            justify-content: stretch;
+        }
+        
+        .toolbar-right .btn {
+            flex: 1;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+        }
+        
+        .salon-cell {
+            min-width: 200px;
+        }
+        
+        .actions-cell {
+            min-width: 120px;
+        }
+        
+        .pagination {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .modal {
+            max-width: 100%;
+        }
+    }
+</style>
+
+<div class="almacenes-container">
+    <!-- HEADER CON BOTÓN REGRESAR -->
+    <header class="page-header">
+        <a href="{% url 'almacenes' %}" class="btn-back" title="Regresar">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <h2 class="section-title">Entrega de Útiles Escolares</h2>
+    </header>
+
+    <!-- STATS CARDS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Salones</div>
+            <div class="stat-value">{{ total_salones|default:"0" }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Alumnos</div>
+            <div class="stat-value">{{ total_alumnos|default:"0" }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Entregas Completas</div>
+            <div class="stat-value">{{ entregas_completas|default:"0" }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Pendientes</div>
+            <div class="stat-value">{{ pendientes|default:"0" }}</div>
+        </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <!-- Search -->
+            <div class="search-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" placeholder="Buscar por salón o profesora..." id="searchInput">
+            </div>
+            
+            <!-- Filters -->
+            <select class="filter-select" id="filterGrado">
+                <option value="">Todos los grados</option>
+                <option value="1">1° Grado</option>
+                <option value="2">2° Grado</option>
+                <option value="3">3° Grado</option>
+                <option value="4">4° Grado</option>
+                <option value="5">5° Grado</option>
+                <option value="6">6° Grado</option>
+            </select>
+            
+            <select class="filter-select" id="filterEstado">
+                <option value="">Estado de entrega</option>
+                <option value="completo">Completo</option>
+                <option value="parcial">Parcial</option>
+                <option value="pendiente">Pendiente</option>
+            </select>
+        </div>
+        
+        <div class="toolbar-right">
+            <button class="btn btn-secondary btn-icon" title="Exportar">
+                <i class="fa-solid fa-download"></i>
+            </button>
+            <a href="{% url 'crear_salon' %}" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i>
+                Crear Salón
+            </a>
+        </div>
+    </div>
+
+    <!-- TABLE O EMPTY STATE -->
+    {% if salones %}
+    <div class="table-card">
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Salón</th>
+                        <th>Profesora</th>
+                        <th>Alumnos</th>
+                        <th>Fecha Creación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for salon in salones %}
+                    <tr onclick="openModal('{{ salon.nombre }}', {{ salon.id }})">
+                        <td>
+                            <div class="salon-cell">
+                                <div class="salon-icon">{{ salon.codigo }}</div>
+                                <div class="salon-info">
+                                    <h4>{{ salon.nombre }}</h4>
+                                    <p>{{ salon.turno }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="teacher-cell">
+                                <div class="teacher-avatar">{{ salon.profesora_iniciales }}</div>
+                                <span class="teacher-name">{{ salon.profesora }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge">
+                                <i class="fa-solid fa-users"></i>
+                                {{ salon.total_alumnos }} alumnos
+                            </span>
+                        </td>
+                        <td class="date-cell">
+                            <i class="fa-solid fa-calendar"></i>
+                            {{ salon.fecha_creacion|date:"d/m/Y" }}
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="action-btn view" title="Ver detalles" onclick="event.stopPropagation(); openModal('{{ salon.nombre }}', {{ salon.id }})">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                                <a href="{% url 'editar_salon' salon.id %}" class="action-btn edit" title="Editar" onclick="event.stopPropagation()">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <button class="action-btn delete" title="Eliminar" onclick="event.stopPropagation(); confirmarEliminar({{ salon.id }})">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION -->
+        {% if is_paginated %}
+        <div class="pagination">
+            <div class="pagination-info">
+                Mostrando <strong>{{ page_obj.start_index }}-{{ page_obj.end_index }}</strong> de <strong>{{ paginator.count }}</strong> salones
+            </div>
+            <div class="pagination-controls">
+                {% if page_obj.has_previous %}
+                <a href="?page=1" class="page-btn">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </a>
+                <a href="?page={{ page_obj.previous_page_number }}" class="page-btn">{{ page_obj.previous_page_number }}</a>
+                {% else %}
+                <button class="page-btn" disabled>
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                {% endif %}
+                
+                <button class="page-btn active">{{ page_obj.number }}</button>
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="page-btn">{{ page_obj.next_page_number }}</a>
+                <a href="?page={{ paginator.num_pages }}" class="page-btn">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </a>
+                {% else %}
+                <button class="page-btn" disabled>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <!-- EMPTY STATE -->
+    <div class="empty-state">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        <h3>No hay salones registrados</h3>
+        <p>Comienza creando tu primer salón para gestionar las entregas de útiles escolares</p>
+        <a href="{% url 'crear_salon' %}" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i>
+            Crear Primer Salón
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- MODAL - DETALLE DE ALUMNOS -->
+<div class="modal-overlay" id="modalAlumnos">
+    <div class="modal">
+        <div class="modal-header">
+            <h2><i class="fa-solid fa-users"></i> Alumnos del Salón <span id="modalSalonName"></span></h2>
+            <button class="modal-close" onclick="closeModal()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="students-list" id="studentsList">
+                <!-- Los alumnos se cargarán dinámicamente aquí -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Función para abrir modal de alumnos
+    function openModal(salonName, salonId) {
+        document.getElementById('modalSalonName').textContent = salonName;
+        document.getElementById('modalAlumnos').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Cargar alumnos del salón (hacer petición AJAX)
+        cargarAlumnos(salonId);
+    }
+    
+    // Función para cerrar modal
+    function closeModal() {
+        document.getElementById('modalAlumnos').classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
+    
+    // Cerrar modal al hacer clic fuera de él
+    document.getElementById('modalAlumnos').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+    
+    // Cerrar modal con tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+    
+    // Función para cargar alumnos (AJAX)
+    function cargarAlumnos(salonId) {
+        // Aquí harías la petición AJAX a tu backend
+        fetch(`/api/salones/${salonId}/alumnos/`)
+            .then(response => response.json())
+            .then(data => {
+                const studentsList = document.getElementById('studentsList');
+                studentsList.innerHTML = '';
+                
+                if (data.alumnos && data.alumnos.length > 0) {
+                    data.alumnos.forEach(alumno => {
+                        const iniciales = alumno.nombre.split(' ').map(n => n[0]).join('');
+                        const statusClass = alumno.entrega_completada ? 'entregado' : 'pendiente';
+                        const statusText = alumno.entrega_completada ? 'Entregado' : 'Pendiente';
+                        const statusIcon = alumno.entrega_completada ? 'check-circle' : 'clock';
+                        
+                        studentsList.innerHTML += `
+                            <div class="student-card">
+                                <div class="student-avatar">${iniciales}</div>
+                                <div class="student-info">
+                                    <h4>${alumno.nombre}</h4>
+                                    <div class="student-meta">
+                                        <i class="fa-solid fa-id-card"></i> DNI: ${alumno.dni} • 
+                                        <i class="fa-solid fa-envelope"></i> ${alumno.email}
+                                    </div>
+                                </div>
+                                <span class="student-status ${statusClass}">
+                                    <i class="fa-solid fa-${statusIcon}"></i> ${statusText}
+                                </span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    studentsList.innerHTML = '<div class="empty-state"><p>No hay alumnos registrados en este salón</p></div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('studentsList').innerHTML = '<div class="empty-state"><p>Error al cargar los alumnos</p></div>';
+            });
+    }
+    
+    // Búsqueda en tiempo real
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('.data-table tbody tr');
+        
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    
+    // Confirmar eliminación
+    function confirmarEliminar(salonId) {
+        if (confirm('¿Estás seguro de que deseas eliminar este salón?')) {
+            // Aquí harías la petición para eliminar
+            window.location.href = `/salones/eliminar/${salonId}/`;
+        }
+    }
+</script>
+
+{% endblock %}

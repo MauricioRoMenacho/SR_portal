@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include  
-from . import views
+from .view import views, Entregautiles
 
 urlpatterns = [
     path('', views.inicio, name='inicio'),
@@ -23,7 +23,7 @@ urlpatterns = [
     path('eliminar-pedido-compra/<int:id_pedido>/', views.EliminarPedido, name='EliminarPedido'),
     path('api/ultimo-producto/', views.api_ultimo_producto, name='api_ultimo_producto'),
     
-    # Items del pedido (NUEVO - para editar la tabla de productos)
+    # Items del pedido
     path('pedidos-compra/<int:id_pedido>/agregar-item/', views.AgregarItemPedido, name='AgregarItemPedido'),
     path('pedidos-compra/<int:id_pedido>/editar-item/', views.EditarItemPedido, name='EditarItemPedido'),
     path('pedidos-compra/item/<int:item_id>/obtener/', views.ObtenerItemPedido, name='ObtenerItemPedido'),
@@ -44,6 +44,13 @@ urlpatterns = [
     path('perfil/', views.perfil, name='perfil'),
     path('configuracion/', views.configuracion, name='configuracion'),
     path('logout/', views.logout_view, name='logout'),
+
+    # ── Entrega de útiles ──
+    path('entrega-utiles/',                       Entregautiles.SalonesList.as_view(), name='entrega_utiles'),
+    path('crear-salon/',                          Entregautiles.crear_salon,           name='crear_salon'),
+    path('editar-salon/<int:pk>/',                Entregautiles.editar_salon,          name='editar_salon'),
+    path('salones/eliminar/<int:pk>/',            Entregautiles.eliminar_salon,        name='eliminar_salon'),
+    path('api/salones/<int:salon_id>/alumnos/',   Entregautiles.api_alumnos_salon,     name='api_alumnos_salon'),
 ]
 
 # Servir archivos media en desarrollo

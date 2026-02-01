@@ -208,3 +208,75 @@ class Cotizacion(models.Model):
         verbose_name = 'Cotización'
         verbose_name_plural = 'Cotizaciones'
         ordering = ['-fecha_creacion']
+
+
+class Salon(models.Model):
+    TURNO_CHOICES = [
+        ('Mañana', 'Mañana'),
+        ('Tarde', 'Tarde'),
+    ]
+
+    GRADO_CHOICES = [
+        (1, '1° Grado'),
+        (2, '2° Grado'),
+        (3, '3° Grado'),
+        (4, '4° Grado'),
+        (5, '5° Grado'),
+        (6, '6° Grado'),
+    ]
+
+    nombre = models.CharField(max_length=100)
+    codigo = models.CharField(max_length=10, unique=True)  # ej: "1A", "2B"
+    profesora = models.CharField(max_length=150)
+    grado = models.IntegerField(choices=GRADO_CHOICES)
+    turno = models.CharField(max_length=10, choices=TURNO_CHOICES, default='Mañana')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Salón'
+        verbose_name_plural = 'Salones'
+
+    def __str__(self):
+        return self.nombre
+
+    # ── Propiedades calculadas que usa el template ──────────────────────
+
+    @property
+    def profesora_iniciales(self):
+        """Retorna las iniciales de la profesora. Ej: 'María López' -> 'ML'"""
+        partes = self.profesora.split()
+        return ''.join([p[0].upper() for p in partes if p])[:2]
+
+    @property
+    def total_alumnos(self):
+        """Cantidad de alumnos en el salón."""
+        return self.alumnos.count()
+
+
+class Alumno(models.Model):
+    salon = models.ForeignKey(
+        Salon,
+        on_delete=models.CASCADE,
+        related_name='alumnos'
+    )
+    nombre = models.CharField(max_length=150)
+    dni = models.CharField(max_length=10, unique=True)
+    email = models.EmailField(blank=True, null=True)
+    entrega_completada = models.BooleanField(default=False)
+    fecha_entrega = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = 'Alumno'
+        verbose_name_plural = 'Alumnos'
+
+    def __str__(self):
+        return f"{self.nombre} — {self.salon.nombre}"
+
+    def marcar_entrega(self):
+        """Marca la entrega como completada y registra la fecha."""
+        from django.utils import timezone
+        self.entrega_completada = True
+        self.fecha_entrega = timezone.now()
+        self.save()
