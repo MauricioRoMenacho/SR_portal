@@ -287,22 +287,23 @@ function limpiarFiltros() {
 }
 
 // ========== ACCIONES ==========
+
 function verDetallesPedido(id) {
-  window.location.href = `/detalle-pedido-compra/${id}/`;
+  window.location.href = `/pedidos-compra/${id}/`;
 }
 
 function verCotizaciones(id) {
-  window.location.href = `/cotizaciones-pedido/${id}/`;
+  window.location.href = `/pedidos-compra/${id}/cotizaciones/`;
 }
 
 function editarPedido(id) {
-  window.location.href = `/editar-pedido-compra/${id}/`;
+  window.location.href = `/pedidos-compra/${id}/editar/`;
 }
 
 function eliminarPedido(id, nombre) {
   const mensaje = `¿Estás seguro de eliminar el pedido "${nombre}"?\n\nEsta acción no se puede deshacer.`;
   if (confirm(mensaje)) {
-    window.location.href = `/eliminar-pedido-compra/${id}/`;
+    window.location.href = `/pedidos-compra/${id}/eliminar/`;
   }
 }
 
