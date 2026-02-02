@@ -6,7 +6,7 @@
 {% block content %}
 <style>
     .editar-container {
-        max-width: 900px;
+        max-width: 1100px;
         margin: 0 auto;
         padding: 30px;
     }
@@ -74,77 +74,223 @@
         padding: 24px;
     }
 
-    .util-row {
-        display: grid;
-        grid-template-columns: 60px 1fr 80px;
-        gap: 16px;
-        align-items: start;
-        padding: 20px;
-        border: 2px solid #f0f0f0;
-        border-radius: 10px;
-        margin-bottom: 16px;
-        transition: all 0.3s;
+    /* ══════════════════════════════════════════════════════════════════
+       🔧 NUEVA TABLA DE ENTREGAS
+       ══════════════════════════════════════════════════════════════════ */
+    
+    .entregas-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
     }
 
-    .util-row:hover {
-        border-color: #148129;
-        box-shadow: 0 2px 8px rgba(20, 129, 41, 0.1);
+    .entregas-table thead {
+        background: #f9f9f9;
+        border-bottom: 2px solid #e0e0e0;
     }
 
-    .checkbox-wrapper {
+    .entregas-table th {
+        padding: 14px 16px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .entregas-table th:nth-child(1) { width: 40px; }      /* # */
+    .entregas-table th:nth-child(2) { width: auto; }      /* Útil */
+    .entregas-table th:nth-child(3) { width: 100px; text-align: center; } /* Pedido */
+    .entregas-table th:nth-child(4) { width: 140px; text-align: center; } /* Entregado */
+    .entregas-table th:nth-child(5) { width: 120px; text-align: center; } /* Estado */
+    .entregas-table th:nth-child(6) { width: 280px; }     /* Observaciones */
+
+    .entregas-table tbody tr {
+        border-bottom: 1px solid #eee;
+        transition: all 0.2s;
+    }
+
+    .entregas-table tbody tr:hover {
+        background: #f1f8f4;
+    }
+
+    .entregas-table td {
+        padding: 16px;
+        font-size: 14px;
+        color: #333;
+        vertical-align: middle;
+    }
+
+    /* Columna de número */
+    .row-number {
+        color: #999;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    /* Columna de útil */
+    .util-info h3 {
+        font-size: 15px;
+        margin: 0 0 4px 0;
+        color: #333;
+        font-weight: 600;
+    }
+
+    .util-info p {
+        margin: 0;
+        font-size: 12px;
+        color: #999;
+    }
+
+    .util-info .fecha-entrega {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #148129;
         display: flex;
         align-items: center;
-        justify-content: center;
-        height: 100%;
+        gap: 4px;
     }
 
-    .checkbox-custom {
-        width: 28px;
-        height: 28px;
-        cursor: pointer;
-        accent-color: #148129;
-    }
-
-    .util-details h3 {
-        font-size: 16px;
-        margin: 0 0 8px 0;
-        color: #333;
-    }
-
-    .util-details p {
-        margin: 0 0 8px 0;
-        font-size: 13px;
+    /* Columna de cantidad pedida */
+    .cantidad-pedida {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 700;
         color: #666;
     }
 
-    .util-observaciones {
-        margin-top: 12px;
+    /* 🔧 NUEVO: Control de cantidad entregada */
+    .cantidad-control {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
     }
 
-    .util-observaciones textarea {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
+    .cantidad-btn {
+        width: 32px;
+        height: 32px;
+        border: 2px solid #ddd;
+        background: white;
         border-radius: 6px;
-        font-size: 13px;
-        resize: vertical;
-        min-height: 60px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 700;
+        color: #666;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .util-observaciones textarea:focus {
+    .cantidad-btn:hover {
+        border-color: #148129;
+        color: #148129;
+        background: #f1f8f4;
+    }
+
+    .cantidad-btn:active {
+        transform: scale(0.95);
+    }
+
+    .cantidad-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        border-color: #ddd;
+        color: #999;
+    }
+
+    .cantidad-btn:disabled:hover {
+        background: white;
+    }
+
+    .cantidad-input {
+        width: 60px;
+        height: 36px;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 700;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        color: #333;
+        transition: all 0.2s;
+    }
+
+    .cantidad-input:focus {
         outline: none;
         border-color: #148129;
         box-shadow: 0 0 0 3px rgba(20, 129, 41, 0.1);
     }
 
-    .cantidad-badge {
-        background: #f0f0f0;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-weight: 700;
-        color: #333;
+    /* Indicador visual de progreso */
+    .cantidad-input.completo {
+        border-color: #148129;
+        background: #f0fff4;
+        color: #148129;
+    }
+
+    .cantidad-input.parcial {
+        border-color: #fbbf24;
+        background: #fffbeb;
+        color: #92400e;
+    }
+
+    .cantidad-input.vacio {
+        border-color: #ddd;
+        background: white;
+    }
+
+    /* Columna de estado visual */
+    .estado-visual {
         text-align: center;
-        font-size: 14px;
+    }
+
+    .badge-estado {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-estado.completo {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-estado.parcial {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .badge-estado.pendiente {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    /* Columna de observaciones */
+    .obs-textarea {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 13px;
+        resize: vertical;
+        min-height: 50px;
+        font-family: inherit;
+    }
+
+    .obs-textarea:focus {
+        outline: none;
+        border-color: #148129;
+        box-shadow: 0 0 0 3px rgba(20, 129, 41, 0.1);
+    }
+
+    .obs-textarea::placeholder {
+        color: #bbb;
     }
 
     .form-footer {
@@ -225,19 +371,27 @@
     }
 
     @media (max-width: 768px) {
+        .editar-container {
+            padding: 15px;
+        }
+
         .header-editar {
             flex-direction: column;
             align-items: flex-start;
             gap: 16px;
         }
 
-        .util-row {
-            grid-template-columns: 1fr;
-            gap: 12px;
+        .entregas-table {
+            font-size: 12px;
         }
 
-        .cantidad-badge {
-            width: fit-content;
+        .entregas-table th,
+        .entregas-table td {
+            padding: 10px 8px;
+        }
+
+        .cantidad-input {
+            width: 50px;
         }
     }
 </style>
@@ -269,48 +423,105 @@
         {% csrf_token %}
         
         <div class="form-header">
-            <h2><i class="fa-solid fa-clipboard-check"></i> Marcar Entregas</h2>
+            <h2><i class="fa-solid fa-clipboard-check"></i> Registro de Entregas</h2>
         </div>
 
         <div class="form-body">
-            {% for entrega in entregas %}
-            <div class="util-row">
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" 
-                           name="entregado_{{ entrega.pk }}" 
-                           id="check_{{ entrega.pk }}"
-                           class="checkbox-custom"
-                           {% if entrega.entregado %}checked{% endif %}>
-                </div>
+            <table class="entregas-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Útil Escolar</th>
+                        <th style="text-align: center;">Pedido</th>
+                        <th style="text-align: center;">Entregado</th>
+                        <th style="text-align: center;">Estado</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entrega in entregas %}
+                    <tr>
+                        <!-- # -->
+                        <td class="row-number">{{ forloop.counter }}</td>
 
-                <div class="util-details">
-                    <h3>
-                        <label for="check_{{ entrega.pk }}" style="cursor: pointer;">
-                            {{ entrega.util.nombre }}
-                        </label>
-                    </h3>
-                    {% if entrega.util.descripcion %}
-                    <p>{{ entrega.util.descripcion }}</p>
-                    {% endif %}
-                    
-                    {% if entrega.fecha_entrega %}
-                    <p style="color: #148129;">
-                        <i class="fa-solid fa-check-circle"></i> 
-                        Entregado el {{ entrega.fecha_entrega|date:"d/m/Y H:i" }}
-                    </p>
-                    {% endif %}
+                        <!-- Útil -->
+                        <td>
+                            <div class="util-info">
+                                <h3>{{ entrega.util.nombre }}</h3>
+                                {% if entrega.util.descripcion %}
+                                <p>{{ entrega.util.descripcion }}</p>
+                                {% endif %}
+                                {% if entrega.fecha_entrega %}
+                                <div class="fecha-entrega">
+                                    <i class="fa-solid fa-clock"></i>
+                                    {{ entrega.fecha_entrega|date:"d/m/Y H:i" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </td>
 
-                    <div class="util-observaciones">
-                        <textarea name="obs_{{ entrega.pk }}" 
-                                  placeholder="Observaciones (opcional)...">{% if entrega.observaciones %}{{ entrega.observaciones }}{% endif %}</textarea>
-                    </div>
-                </div>
+                        <!-- Pedido -->
+                        <td class="cantidad-pedida">
+                            {{ entrega.util.cantidad }}
+                        </td>
 
-                <div class="cantidad-badge">
-                    x{{ entrega.util.cantidad }}
-                </div>
-            </div>
-            {% endfor %}
+                        <!-- 🔧 NUEVO: Control de Entregado -->
+                        <td>
+                            <div class="cantidad-control">
+                                <button type="button" 
+                                        class="cantidad-btn btn-decrease" 
+                                        data-entrega-id="{{ entrega.pk }}"
+                                        data-max="{{ entrega.util.cantidad }}">
+                                    <i class="fa-solid fa-minus"></i>
+                                </button>
+
+                                <input type="number" 
+                                       name="cantidad_{{ entrega.pk }}" 
+                                       id="input_{{ entrega.pk }}"
+                                       class="cantidad-input"
+                                       value="{{ entrega.cantidad_entregada }}"
+                                       min="0"
+                                       max="{{ entrega.util.cantidad }}"
+                                       data-max="{{ entrega.util.cantidad }}">
+
+                                <button type="button" 
+                                        class="cantidad-btn btn-increase" 
+                                        data-entrega-id="{{ entrega.pk }}"
+                                        data-max="{{ entrega.util.cantidad }}">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                        </td>
+
+                        <!-- Estado Visual -->
+                        <td class="estado-visual">
+                            <span class="badge-estado-container" id="badge_{{ entrega.pk }}">
+                                {% if entrega.cantidad_entregada >= entrega.util.cantidad %}
+                                    <span class="badge-estado completo">
+                                        <i class="fa-solid fa-check-circle"></i> Completo
+                                    </span>
+                                {% elif entrega.cantidad_entregada > 0 %}
+                                    <span class="badge-estado parcial">
+                                        <i class="fa-solid fa-hourglass-half"></i> Parcial
+                                    </span>
+                                {% else %}
+                                    <span class="badge-estado pendiente">
+                                        <i class="fa-solid fa-clock"></i> Pendiente
+                                    </span>
+                                {% endif %}
+                            </span>
+                        </td>
+
+                        <!-- Observaciones -->
+                        <td>
+                            <textarea name="obs_{{ entrega.pk }}" 
+                                      class="obs-textarea"
+                                      placeholder="Notas u observaciones...">{% if entrega.observaciones %}{{ entrega.observaciones }}{% endif %}</textarea>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
         <div class="form-footer">
@@ -335,5 +546,96 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+    // ══════════════════════════════════════════════════════════════════
+    // 🔧 NUEVO: Control de cantidades con botones +/-
+    // ══════════════════════════════════════════════════════════════════
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Botones de incrementar
+        document.querySelectorAll('.btn-increase').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const entregaId = this.dataset.entregaId;
+                const max = parseInt(this.dataset.max);
+                const input = document.getElementById(`input_${entregaId}`);
+                
+                let valor = parseInt(input.value) || 0;
+                if (valor < max) {
+                    valor++;
+                    input.value = valor;
+                    actualizarEstadoVisual(entregaId, valor, max);
+                }
+            });
+        });
+
+        // Botones de decrementar
+        document.querySelectorAll('.btn-decrease').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const entregaId = this.dataset.entregaId;
+                const max = parseInt(this.dataset.max);
+                const input = document.getElementById(`input_${entregaId}`);
+                
+                let valor = parseInt(input.value) || 0;
+                if (valor > 0) {
+                    valor--;
+                    input.value = valor;
+                    actualizarEstadoVisual(entregaId, valor, max);
+                }
+            });
+        });
+
+        // Cambios manuales en los inputs
+        document.querySelectorAll('.cantidad-input').forEach(input => {
+            input.addEventListener('input', function() {
+                const entregaId = this.id.replace('input_', '');
+                const max = parseInt(this.dataset.max);
+                let valor = parseInt(this.value) || 0;
+                
+                // Validar rango
+                if (valor < 0) valor = 0;
+                if (valor > max) valor = max;
+                
+                this.value = valor;
+                actualizarEstadoVisual(entregaId, valor, max);
+            });
+        });
+
+        // Actualizar estado visual al cargar
+        document.querySelectorAll('.cantidad-input').forEach(input => {
+            const entregaId = input.id.replace('input_', '');
+            const max = parseInt(input.dataset.max);
+            const valor = parseInt(input.value) || 0;
+            actualizarEstadoVisual(entregaId, valor, max);
+        });
+    });
+
+    function actualizarEstadoVisual(entregaId, cantidad, max) {
+        const input = document.getElementById(`input_${entregaId}`);
+        const badgeContainer = document.getElementById(`badge_${entregaId}`);
+        
+        // Actualizar clase del input
+        input.classList.remove('completo', 'parcial', 'vacio');
+        if (cantidad >= max) {
+            input.classList.add('completo');
+        } else if (cantidad > 0) {
+            input.classList.add('parcial');
+        } else {
+            input.classList.add('vacio');
+        }
+
+        // Actualizar badge de estado
+        let badgeHTML = '';
+        if (cantidad >= max) {
+            badgeHTML = '<span class="badge-estado completo"><i class="fa-solid fa-check-circle"></i> Completo</span>';
+        } else if (cantidad > 0) {
+            badgeHTML = '<span class="badge-estado parcial"><i class="fa-solid fa-hourglass-half"></i> Parcial</span>';
+        } else {
+            badgeHTML = '<span class="badge-estado pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>';
+        }
+        
+        badgeContainer.innerHTML = badgeHTML;
+    }
+</script>
 
 {% endblock %}

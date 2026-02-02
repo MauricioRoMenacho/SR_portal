@@ -157,6 +157,14 @@
     .status-badge.parcial { background: #dbeafe; color: #1e40af; }
     .status-badge.sin-lista { background: #f3f4f6; color: #6b7280; }
 
+    /* 🔧 NUEVO: Progreso en formato X/Y */
+    .progreso-text {
+        font-size: 12px;
+        color: #666;
+        margin-left: 4px;
+        font-weight: 500;
+    }
+
     .actions-cell { display: flex; gap: 8px; }
     .action-btn {
         width: 34px; height: 34px; border: none; border-radius: 8px;
@@ -315,14 +323,17 @@
                                 {% if alumno.estado_entrega == 'completo' %}
                                     <span class="status-badge entregado">
                                         <i class="fa-solid fa-check-circle"></i> Completo
+                                        <span class="progreso-text">({{ alumno.progreso_entrega }})</span>
                                     </span>
                                 {% elif alumno.estado_entrega == 'parcial' %}
                                     <span class="status-badge parcial">
-                                        <i class="fa-solid fa-hourglass-half"></i> Parcial ({{ alumno.porcentaje_entrega }}%)
+                                        <i class="fa-solid fa-hourglass-half"></i> Parcial
+                                        <span class="progreso-text">({{ alumno.progreso_entrega }})</span>
                                     </span>
                                 {% elif alumno.estado_entrega == 'no_entrego' %}
                                     <span class="status-badge pendiente">
                                         <i class="fa-solid fa-clock"></i> No entregó
+                                        <span class="progreso-text">({{ alumno.progreso_entrega }})</span>
                                     </span>
                                 {% else %}
                                     <span class="status-badge sin-lista">
@@ -365,24 +376,22 @@
 
 <script>
     // ══════════════════════════════════════════════════════════════════
-    // ✨ NUEVA FUNCIÓN: Detectar si venimos de editar entregas
+    // Detectar si venimos de editar entregas
     // ══════════════════════════════════════════════════════════════════
     window.addEventListener('DOMContentLoaded', function() {
-        // Si hay un parámetro en la URL indicando que se actualizó
         const urlParams = new URLSearchParams(window.location.search);
         const alumnoActualizado = urlParams.get('actualizado');
         
         if (alumnoActualizado) {
-            // Recargar datos del alumno específico
             actualizarDatosAlumno(alumnoActualizado);
-            
-            // Limpiar URL sin recargar página
             window.history.replaceState({}, document.title, window.location.pathname);
         }
+        
+        actualizarEstadisticas();
     });
 
     // ══════════════════════════════════════════════════════════════════
-    // ✨ NUEVA FUNCIÓN: Actualizar datos de un alumno vía AJAX
+    // 🔧 ACTUALIZADA: Actualizar datos de un alumno vía AJAX
     // ══════════════════════════════════════════════════════════════════
     async function actualizarDatosAlumno(alumnoId) {
         try {
@@ -390,30 +399,27 @@
             const data = await response.json();
             
             if (data.ok) {
-                // Actualizar el badge de estado en la fila
                 const statusContainer = document.getElementById(`status-container-${alumnoId}`);
                 if (statusContainer) {
-                    statusContainer.innerHTML = generarBadgeEstado(data.estado, data.porcentaje);
+                    statusContainer.innerHTML = generarBadgeEstado(data.estado, data.progreso);
                 }
                 
-                // Actualizar estadísticas globales
                 actualizarEstadisticas();
             }
         } catch (error) {
             console.error('Error al actualizar datos del alumno:', error);
-            // Si falla, recargar la página completa
             location.reload();
         }
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // ✨ NUEVA FUNCIÓN: Generar HTML del badge de estado
+    // 🔧 ACTUALIZADA: Generar HTML del badge con progreso X/Y
     // ══════════════════════════════════════════════════════════════════
-    function generarBadgeEstado(estado, porcentaje = 0) {
+    function generarBadgeEstado(estado, progreso = '0/0') {
         const badges = {
-            'completo': '<span class="status-badge entregado"><i class="fa-solid fa-check-circle"></i> Completo</span>',
-            'parcial': `<span class="status-badge parcial"><i class="fa-solid fa-hourglass-half"></i> Parcial (${porcentaje}%)</span>`,
-            'no_entrego': '<span class="status-badge pendiente"><i class="fa-solid fa-clock"></i> No entregó</span>',
+            'completo': `<span class="status-badge entregado"><i class="fa-solid fa-check-circle"></i> Completo <span class="progreso-text">(${progreso})</span></span>`,
+            'parcial': `<span class="status-badge parcial"><i class="fa-solid fa-hourglass-half"></i> Parcial <span class="progreso-text">(${progreso})</span></span>`,
+            'no_entrego': `<span class="status-badge pendiente"><i class="fa-solid fa-clock"></i> No entregó <span class="progreso-text">(${progreso})</span></span>`,
             'sin_lista': '<span class="status-badge sin-lista"><i class="fa-solid fa-minus-circle"></i> Sin lista</span>'
         };
         
@@ -451,6 +457,7 @@
         document.querySelectorAll('.data-table tbody tr').forEach(row => {
             row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
         });
+        actualizarEstadisticas();
     });
 
     // ══════════════════════════════════════════════════════════════════
@@ -474,35 +481,34 @@
     }
 
     // ══════════════════════════════════════════════════════════════════
-    // ✅ Actualizar estadísticas en tiempo real
+    // Actualizar estadísticas en tiempo real
     // ══════════════════════════════════════════════════════════════════
     function actualizarEstadisticas() {
-        const filas = document.querySelectorAll('.data-table tbody tr');
+        const filas = document.querySelectorAll('.data-table tbody tr[data-alumno-id]');
         let totalAlumnos = 0;
         let totalCompletos = 0;
         let totalParciales = 0;
         let totalPendientes = 0;
-        let totalSinLista = 0;
         
         filas.forEach(fila => {
-            if (fila.id && fila.parentElement && fila.style.display !== 'none') {
+            if (fila.style.display !== 'none') {
                 totalAlumnos++;
                 const badge = fila.querySelector('.status-badge');
+                
                 if (badge) {
-                    if (badge.classList.contains('entregado')) {
+                    const badgeText = badge.textContent.trim().toLowerCase();
+                    
+                    if (badgeText.includes('completo')) {
                         totalCompletos++;
-                    } else if (badge.classList.contains('parcial')) {
+                    } else if (badgeText.includes('parcial')) {
                         totalParciales++;
-                    } else if (badge.classList.contains('pendiente')) {
+                    } else if (badgeText.includes('no entregó') || badgeText.includes('pendiente')) {
                         totalPendientes++;
-                    } else if (badge.classList.contains('sin-lista')) {
-                        totalSinLista++;
                     }
                 }
             }
         });
         
-        // Actualizar los valores en las tarjetas de estadísticas
         document.getElementById('stat-total').textContent = totalAlumnos;
         document.getElementById('stat-completos').textContent = totalCompletos;
         document.getElementById('stat-parciales').textContent = totalParciales;

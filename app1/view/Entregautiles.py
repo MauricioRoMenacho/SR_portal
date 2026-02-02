@@ -25,21 +25,20 @@ class SalonesList(ListView):
         context = super().get_context_data(**kwargs)
         total_alumnos = Alumno.objects.count()
         
-        # ✨ NUEVO: Contar por estados individuales
         completos = 0
         parciales = 0
         pendientes = 0
         sin_lista = 0
         
         for alumno in Alumno.objects.all():
-            estado = alumno.estado_entrega  # Usa la property del modelo
+            estado = alumno.estado_entrega
             if estado == 'completo':
                 completos += 1
             elif estado == 'parcial':
                 parciales += 1
             elif estado == 'no_entrego':
                 pendientes += 1
-            else:  # sin_lista
+            else:
                 sin_lista += 1
         
         context['total_salones'] = Salon.objects.count()
@@ -72,7 +71,7 @@ def editar_salon(request, pk):
             return redirect('entrega_utiles')
     else:
         form = SalonForm(instance=salon)
-    return render(request, 'almacenes/almutiles/Entrega_Utiles/editar_salon.html', {
+    return render(request, 'almacenes/almutiles/Entrega_Utiles/Editarsalon.html', {
         'form': form,
         'salon': salon,
     })
@@ -151,11 +150,12 @@ def importar_excel_alumnos(request, pk):
                 sexo=sexo,
             )
             
-            # Crear entregas automáticamente para cada útil del salón
+            # Crear entregas con cantidad_entregada = 0
             for util in salon.utiles.all():
                 EntregaUtil.objects.create(
                     alumno=alumno,
                     util=util,
+                    cantidad_entregada=0,
                     entregado=False
                 )
             
@@ -187,9 +187,6 @@ def importar_excel_alumnos(request, pk):
 # ═════════════════════════════════════════════════════════════════════
 
 def lista_utiles(request, salon_id):
-    """
-    Vista para gestionar la lista de útiles del salón
-    """
     salon = get_object_or_404(Salon, pk=salon_id)
     utiles = salon.utiles.all()
     
@@ -201,11 +198,12 @@ def lista_utiles(request, salon_id):
             util.orden = salon.utiles.count() + 1
             util.save()
             
-            # Crear entregas para todos los alumnos del salón
+            # Crear entregas para todos los alumnos con cantidad_entregada = 0
             for alumno in salon.alumnos.all():
                 EntregaUtil.objects.create(
                     alumno=alumno,
                     util=util,
+                    cantidad_entregada=0,
                     entregado=False
                 )
             
@@ -222,9 +220,6 @@ def lista_utiles(request, salon_id):
 
 
 def eliminar_util(request, util_id):
-    """
-    Eliminar un útil de la lista del salón
-    """
     util = get_object_or_404(UtilEscolar, pk=util_id)
     salon_id = util.salon.pk
     util.delete()
@@ -237,9 +232,6 @@ def eliminar_util(request, util_id):
 # ═════════════════════════════════════════════════════════════════════
 
 def detalle_alumno(request, alumno_id):
-    """
-    Vista detallada de las entregas de un alumno específico
-    """
     alumno = get_object_or_404(Alumno, pk=alumno_id)
     entregas = alumno.entregas.all().select_related('util')
     
@@ -252,30 +244,33 @@ def detalle_alumno(request, alumno_id):
 
 def editar_entregas_alumno(request, alumno_id):
     """
-    Vista para editar las entregas de un alumno
+    🔧 ACTUALIZADA: Ahora maneja cantidades entregadas
     """
     alumno = get_object_or_404(Alumno, pk=alumno_id)
     entregas = alumno.entregas.all().select_related('util')
     
     if request.method == 'POST':
         for entrega in entregas:
-            field_name = f'entregado_{entrega.pk}'
+            cantidad_field = f'cantidad_{entrega.pk}'
             obs_name = f'obs_{entrega.pk}'
             
-            nuevo_estado = field_name in request.POST
+            # Obtener cantidad entregada del formulario
+            try:
+                nueva_cantidad = int(request.POST.get(cantidad_field, 0))
+                # Validar que no sea negativa
+                nueva_cantidad = max(0, nueva_cantidad)
+            except (ValueError, TypeError):
+                nueva_cantidad = 0
+            
             observacion = request.POST.get(obs_name, '').strip()
             
-            if entrega.entregado != nuevo_estado:
-                entrega.entregado = nuevo_estado
+            # Registrar cambio si hubo modificación
+            if entrega.cantidad_entregada != nueva_cantidad:
+                cantidad_anterior = entrega.cantidad_entregada
+                entrega.cantidad_entregada = nueva_cantidad
+                entrega.save()  # El save() automáticamente actualiza entregado y fecha_entrega
                 
-                if nuevo_estado:
-                    entrega.fecha_entrega = timezone.now()
-                    accion = f'Marcado como entregado: {entrega.util.nombre}'
-                else:
-                    entrega.fecha_entrega = None
-                    accion = f'Marcado como pendiente: {entrega.util.nombre}'
-                
-                entrega.save()
+                accion = f'{entrega.util.nombre}: {cantidad_anterior} → {nueva_cantidad} de {entrega.util.cantidad}'
                 
                 HistorialEntrega.objects.create(
                     entrega=entrega,
@@ -283,12 +278,13 @@ def editar_entregas_alumno(request, alumno_id):
                     observacion=observacion
                 )
             
+            # Actualizar observaciones si cambiaron
             if observacion and observacion != entrega.observaciones:
                 entrega.observaciones = observacion
                 entrega.save()
         
         messages.success(request, 'Entregas actualizadas exitosamente.')
-        return redirect('detalle_salon', pk=alumno.salon.pk)
+        return redirect(f"{reverse('detalle_salon', kwargs={'pk': alumno.salon.pk})}?actualizado={alumno.pk}")
     
     return render(request, 'almacenes/almutiles/Entrega_Utiles/editar_entregas_alumno.html', {
         'alumno': alumno,
@@ -320,21 +316,21 @@ def api_eliminar_alumno(request, alumno_id):
 @require_POST
 def api_toggle_entrega_util(request, entrega_id):
     """
-    API para marcar/desmarcar entrega de un útil específico
+    🔧 DEPRECADA: Mantener por compatibilidad pero ya no se usa
     """
     entrega = get_object_or_404(EntregaUtil, pk=entrega_id)
-    entrega.entregado = not entrega.entregado
     
-    if entrega.entregado:
-        entrega.fecha_entrega = timezone.now()
+    if entrega.cantidad_entregada >= entrega.util.cantidad:
+        entrega.cantidad_entregada = 0
     else:
-        entrega.fecha_entrega = None
+        entrega.cantidad_entregada = entrega.util.cantidad
     
     entrega.save()
     
     return JsonResponse({
         'ok': True,
-        'entregado': entrega.entregado,
+        'cantidad_entregada': entrega.cantidad_entregada,
+        'cantidad_total': entrega.util.cantidad,
         'fecha_entrega': entrega.fecha_entrega.strftime('%d/%m/%Y %H:%M') if entrega.fecha_entrega else None
     })
 
@@ -342,7 +338,7 @@ def api_toggle_entrega_util(request, entrega_id):
 @require_GET
 def api_estado_alumno(request, alumno_id):
     """
-    API para obtener el estado actualizado de un alumno
+    🔧 ACTUALIZADA: Retorna progreso en formato X/Y
     """
     alumno = get_object_or_404(Alumno, pk=alumno_id)
     
@@ -350,5 +346,6 @@ def api_estado_alumno(request, alumno_id):
         'ok': True,
         'alumno_id': alumno.pk,
         'estado': alumno.estado_entrega,
+        'progreso': alumno.progreso_entrega,
         'porcentaje': alumno.porcentaje_entrega,
     })
