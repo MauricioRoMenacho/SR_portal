@@ -18,6 +18,37 @@
   background-color: transparent;
 }
 
+/* ==================== HEADER CON BOTÓN REGRESAR ==================== */
+.page-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.btn-back {
+    width: 44px;
+    height: 44px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #666;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+.btn-back:hover {
+    background: #f1f8f4;
+    border-color: #148129;
+    color: #148129;
+    transform: translateX(-3px);
+}
+
 /* ==================== HEADER ==================== */
 .inventario-header {
   display: flex;
@@ -326,6 +357,10 @@
     padding: 15px;
   }
 
+  .page-header {
+    flex-wrap: wrap;
+  }
+
   .inventario-header {
     flex-direction: column;
     align-items: flex-start;
@@ -363,28 +398,35 @@
 
 <div class="inventario-container">
   
-  <!-- Header -->
-  <div class="inventario-header">
-    <h1>
-      <i class="fa-solid fa-clipboard-list"></i>
-      Inventario - Almacén de Útiles
-    </h1>
+  <!-- Header con botón regresar -->
+  <header class="page-header">
+    <a href="{% url 'almacenes' %}" class="btn-back" title="Regresar">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div style="flex: 1;">
+      <div class="inventario-header" style="margin-bottom: 0;">
+        <h1>
+          <i class="fa-solid fa-clipboard-list"></i>
+          Inventario - Almacén de Útiles
+        </h1>
 
-    <div class="header-buttons">
-      <a href="{% url 'agregar_producto_utiles' %}">
-        <button class="btn-primary">
-          <i class="fa-solid fa-plus"></i>
-          Agregar Producto
-        </button>
-      </a>
-      <a href="{% url 'importar_excel_utiles' %}">
-        <button class="btn-secondary" style="background: white !important; color: #148129 !important; border: 2px solid #148129 !important;">
-          <i class="fa-solid fa-file-excel"></i>
-          Importar Excel
-        </button>
-      </a>
+        <div class="header-buttons">
+          <a href="{% url 'agregar_producto_utiles' %}">
+            <button class="btn-primary">
+              <i class="fa-solid fa-plus"></i>
+              Agregar Producto
+            </button>
+          </a>
+          <a href="{% url 'importar_excel_utiles' %}">
+            <button class="btn-secondary" style="background: white !important; color: #148129 !important; border: 2px solid #148129 !important;">
+              <i class="fa-solid fa-file-excel"></i>
+              Importar Excel
+            </button>
+          </a>
+        </div>
+      </div>
     </div>
-  </div>
+  </header>
 
   <!-- Filtros -->
   <div class="filtros-container">
