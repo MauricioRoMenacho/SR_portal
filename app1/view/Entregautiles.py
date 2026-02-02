@@ -6,61 +6,196 @@ from django.contrib import messages
 from django.utils import timezone
 from django.urls import reverse
 import openpyxl
-
-from ..models import Salon, Alumno, UtilEscolar, EntregaUtil, HistorialEntrega
+import pandas as pd
+from django.db import models
+from ..models import Salon, Alumno, UtilEscolar, EntregaUtil, HistorialEntrega, ProductoAlmacen, Unidad, MovimientoInventario
 from ..forms import SalonForm, UtilEscolarForm, EntregaUtilForm
 
 # ═════════════════════════════════════════════════════════════════════
-# INVENTARIO DE ÚTILES ESCOLARES
+# INVENTARIO DE ÚTILES - USANDO ProductoAlmacen (igual que AG)
 # ═════════════════════════════════════════════════════════════════════
 
 def inventario_utiles(request):
-    """Vista de inventario general de útiles escolares"""
-    utiles = UtilEscolar.objects.all().select_related('salon').order_by('salon__nombre', 'orden', 'nombre')
-    
-    # Calcular estadísticas por útil
-    utiles_con_estadisticas = []
-    for util in utiles:
-        # Contar entregas totales, completas y pendientes de este útil
-        total_entregas = util.entregas.count()
-        entregas_completas = util.entregas.filter(cantidad_entregada__gte=util.cantidad).count()
-        entregas_parciales = util.entregas.filter(cantidad_entregada__gt=0, cantidad_entregada__lt=util.cantidad).count()
-        entregas_pendientes = util.entregas.filter(cantidad_entregada=0).count()
-        
-        # Total de cantidad pedida vs entregada
-        total_pedido = total_entregas * util.cantidad
-        total_entregado = sum(e.cantidad_entregada for e in util.entregas.all())
-        
-        # Estado del útil (basado en el nivel de entregas)
-        porcentaje_entregado = (total_entregado / total_pedido * 100) if total_pedido > 0 else 0
-        
-        if porcentaje_entregado >= 80:
-            estado = 'ALTO'  # Alto nivel de entregas
-        elif porcentaje_entregado >= 40:
-            estado = 'MEDIO'  # Nivel medio
-        else:
-            estado = 'BAJO'  # Bajo nivel de entregas
-        
-        utiles_con_estadisticas.append({
-            'util': util,
-            'total_entregas': total_entregas,
-            'entregas_completas': entregas_completas,
-            'entregas_parciales': entregas_parciales,
-            'entregas_pendientes': entregas_pendientes,
-            'total_pedido': total_pedido,
-            'total_entregado': total_entregado,
-            'porcentaje_entregado': round(porcentaje_entregado, 1),
-            'estado': estado
-        })
-    
+    """Vista de inventario del Almacén de Útiles - Filtra por ubicacion_almacen='IU'"""
+    productos = ProductoAlmacen.objects.filter(ubicacion_almacen='IU').order_by('-fecha_ingreso')
     context = {
-        'utiles': utiles_con_estadisticas,
-        'total_utiles': len(utiles_con_estadisticas)
+        'productos': productos,
+        'total_productos': productos.count()
     }
-    
     return render(request, 'almacenes/almutiles/inventarioutiles.html', context)
 
 
+def agregar_producto_utiles(request):
+    """Agregar producto al Almacén de Útiles (IU)"""
+    if request.method == 'POST':
+        try:
+            producto = ProductoAlmacen.objects.create(
+                nombre=request.POST.get('nombre'),
+                descripcion=request.POST.get('descripcion'),
+                ubicacion_almacen='IU',  # 🔥 FORZAR que sea IU
+                estante=request.POST.get('estante'),
+                cantidad=request.POST.get('cantidad'),
+                unidad_id=request.POST.get('unidad'),
+                estado=request.POST.get('estado'),
+                observaciones=request.POST.get('observaciones', '')
+            )
+            
+            messages.success(request, f'Producto "{producto.nombre}" agregado exitosamente al Almacén de Útiles')
+            return redirect('inventario_utiles')
+            
+        except Exception as e:
+            messages.error(request, f'Error al agregar producto: {str(e)}')
+    
+    unidades = Unidad.objects.filter(activo=True).order_by('nombre')
+    context = {
+        'unidades': unidades
+    }
+    return render(request, 'almacenes/almutiles/agregar_producto_utiles.html', context)
+
+
+def eliminar_producto_utiles(request, id_producto):
+    """Eliminar producto del Almacén de Útiles"""
+    producto = get_object_or_404(ProductoAlmacen, id_producto=id_producto, ubicacion_almacen='IU')
+    nombre = producto.nombre
+    producto.delete()
+    messages.success(request, f'Producto "{nombre}" eliminado exitosamente')
+    return redirect('inventario_utiles')
+
+
+def importar_excel_utiles(request):
+    """Importar productos al Almacén de Útiles desde Excel"""
+    if request.method == 'POST' and request.FILES.get('archivo_excel'):
+        try:
+            archivo = request.FILES['archivo_excel']
+            df = pd.read_excel(archivo)
+            
+            # Validar columnas OBLIGATORIAS
+            columnas_requeridas = ['nombre', 'cantidad', 'unidad', 'estado']
+            columnas_faltantes = [col for col in columnas_requeridas if col not in df.columns]
+            
+            if columnas_faltantes:
+                messages.error(request, f'Faltan columnas obligatorias: {", ".join(columnas_faltantes)}')
+                return redirect('importar_excel_utiles')
+            
+            productos_creados = 0
+            productos_actualizados = 0
+            unidades_creadas = 0
+            errores = []
+            
+            for index, row in df.iterrows():
+                try:
+                    # Validar nombre
+                    nombre = str(row['nombre']).strip()
+                    if not nombre or nombre == 'nan':
+                        errores.append(f"Fila {index+2}: El nombre es obligatorio")
+                        continue
+                    
+                    # Validar cantidad
+                    try:
+                        cantidad = int(row['cantidad'])
+                        if cantidad < 0:
+                            errores.append(f"Fila {index+2}: La cantidad no puede ser negativa")
+                            continue
+                    except:
+                        errores.append(f"Fila {index+2}: Cantidad inválida")
+                        continue
+                    
+                    # PROCESAR UNIDAD DE MEDIDA
+                    unidad_str = str(row['unidad']).strip()
+                    if not unidad_str or unidad_str == 'nan':
+                        errores.append(f"Fila {index+2}: La unidad es obligatoria")
+                        continue
+                    
+                    # Buscar o crear la unidad
+                    unidad_obj = Unidad.objects.filter(
+                        models.Q(nombre__iexact=unidad_str) |
+                        models.Q(abreviatura__iexact=unidad_str)
+                    ).first()
+                    
+                    if not unidad_obj:
+                        unidad_obj = Unidad.objects.create(
+                            nombre=unidad_str,
+                            abreviatura=unidad_str[:10] if len(unidad_str) <= 10 else '',
+                            activo=True
+                        )
+                        unidades_creadas += 1
+                    
+                    # Validar estado
+                    estado = str(row['estado']).upper().strip()
+                    if estado not in ['DISP', 'AGOT', 'BAJO']:
+                        errores.append(f"Fila {index+2}: Estado '{estado}' no válido")
+                        continue
+                    
+                    # Campos opcionales
+                    descripcion = str(row.get('descripcion', '')).strip()
+                    if descripcion == 'nan':
+                        descripcion = ''
+                    
+                    estante = str(row.get('estante', '')).strip()
+                    if estante == 'nan':
+                        estante = ''
+                    
+                    observaciones = str(row.get('observaciones', '')).strip()
+                    if observaciones == 'nan':
+                        observaciones = ''
+                    
+                    # CREAR producto con ubicacion_almacen='IU'
+                    nuevo_producto = ProductoAlmacen.objects.create(
+                        nombre=nombre,
+                        descripcion=descripcion,
+                        ubicacion_almacen='IU',  # 🔥 FORZAR IU
+                        estante=estante if estante else None,
+                        cantidad=cantidad,
+                        unidad=unidad_obj,
+                        estado=estado,
+                        observaciones=observaciones if observaciones else None
+                    )
+                    
+                    # Registrar el movimiento inicial
+                    MovimientoInventario.objects.create(
+                        producto=nuevo_producto,
+                        tipo_movimiento='ENTRADA',
+                        cantidad=cantidad,
+                        cantidad_anterior=0,
+                        cantidad_nueva=cantidad,
+                        estante_anterior=None,
+                        estante_nuevo=estante if estante else None,
+                        observacion=f"Importación Excel: {observaciones}" if observaciones else "Importación Excel",
+                        usuario=request.user.username if request.user.is_authenticated else 'Sistema'
+                    )
+                    
+                    productos_creados += 1
+                    
+                except Exception as e:
+                    errores.append(f"Fila {index+2}: {str(e)}")
+            
+            # Mensajes de resultado
+            if productos_creados > 0:
+                messages.success(request, f'✅ Se crearon {productos_creados} productos en el Almacén de Útiles')
+            
+            if unidades_creadas > 0:
+                messages.info(request, f'ℹ️ Se crearon {unidades_creadas} nuevas unidades de medida')
+            
+            if errores:
+                messages.warning(request, f'⚠️ Se encontraron {len(errores)} errores')
+                for error in errores[:10]:
+                    messages.error(request, error)
+            
+            if productos_creados > 0:
+                return redirect('inventario_utiles')
+            else:
+                return redirect('importar_excel_utiles')
+            
+        except Exception as e:
+            messages.error(request, f'❌ Error al procesar el archivo: {str(e)}')
+            return redirect('importar_excel_utiles')
+    
+    # GET: Mostrar formulario
+    unidades_disponibles = Unidad.objects.filter(activo=True).order_by('nombre')
+    
+    return render(request, 'almacenes/almutiles/importar_excel_utiles.html', {
+        'unidades_disponibles': unidades_disponibles
+    })
 # ═════════════════════════════════════════════════════════════════════
 # SALONES
 # ═════════════════════════════════════════════════════════════════════

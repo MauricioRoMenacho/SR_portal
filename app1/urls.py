@@ -57,6 +57,9 @@ urlpatterns = [
     # ENTREGA DE ÚTILES ESCOLARES - PRINCIPAL
     # ═════════════════════════════════════════════════════════════════════
     path('inventario-utiles/', Entregautiles.inventario_utiles, name='inventario_utiles'),
+    path('agregar-producto-utiles/', Entregautiles.agregar_producto_utiles, name='agregar_producto_utiles'),
+    path('eliminar-producto-utiles/<int:id_producto>/', Entregautiles.eliminar_producto_utiles, name='eliminar_producto_utiles'),
+    path('importar-excel-utiles/', Entregautiles.importar_excel_utiles, name='importar_excel_utiles'),
     path('entrega-utiles/', Entregautiles.SalonesList.as_view(), name='entrega_utiles'),
 
     # ═════════════════════════════════════════════════════════════════════

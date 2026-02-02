@@ -6,7 +6,7 @@
 {% block content %}
 <style>
 /* ══════════════════════════════════════════════════════════════════
-   ESTILOS INVENTARIO DE ÚTILES (igual que Inventario AG)
+   ESTILOS INVENTARIO DE ÚTILES (EXACTAMENTE igual que Inventario AG)
    ══════════════════════════════════════════════════════════════════ */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -236,16 +236,6 @@
   text-align: center;
 }
 
-.salon-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  background: #e3f2fd;
-  color: #1565c0;
-}
-
 /* ==================== BADGES DE ESTADO ==================== */
 .badge {
   display: inline-flex;
@@ -258,17 +248,17 @@
   white-space: nowrap;
 }
 
-.estado-alto {
+.estado-disponible {
   background: #d1fae5;
   color: #065f46;
 }
 
-.estado-medio {
+.estado-bajo {
   background: #fef3c7;
   color: #92400e;
 }
 
-.estado-bajo {
+.estado-agotado {
   background: #fee2e2;
   color: #991b1b;
 }
@@ -297,13 +287,13 @@
   transform: scale(1.1);
 }
 
-.btn-ver {
-  background: #e3f2fd;
-  color: #1565c0;
+.btn-danger {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
-.btn-ver:hover {
-  background: #1565c0;
+.btn-danger:hover {
+  background: #991b1b;
   color: white;
 }
 
@@ -377,14 +367,20 @@
   <div class="inventario-header">
     <h1>
       <i class="fa-solid fa-clipboard-list"></i>
-      Inventario de Útiles Escolares
+      Inventario - Almacén de Útiles
     </h1>
 
     <div class="header-buttons">
-      <a href="{% url 'entrega_utiles' %}">
-        <button class="btn-secondary">
-          <i class="fa-solid fa-arrow-left"></i>
-          Volver a Salones
+      <a href="{% url 'agregar_producto_utiles' %}">
+        <button class="btn-primary">
+          <i class="fa-solid fa-plus"></i>
+          Agregar Producto
+        </button>
+      </a>
+      <a href="{% url 'importar_excel_utiles' %}">
+        <button class="btn-secondary" style="background: white !important; color: #148129 !important; border: 2px solid #148129 !important;">
+          <i class="fa-solid fa-file-excel"></i>
+          Importar Excel
         </button>
       </a>
     </div>
@@ -396,7 +392,7 @@
     <div class="filtro-grupo">
       <label>
         <i class="fa-solid fa-search"></i>
-        Nombre del Útil
+        Nombre del Producto
       </label>
       <input 
         type="text" 
@@ -408,28 +404,28 @@
 
     <div class="filtro-grupo">
       <label>
-        <i class="fa-solid fa-school"></i>
-        Salón
+        <i class="fa-solid fa-layer-group"></i>
+        Estado
       </label>
-      <select id="filtroSalon" class="filtro-input">
-        <option value="">Todos los salones</option>
-        {% for util in utiles %}
-          <option value="{{ util.util.salon.nombre }}">{{ util.util.salon.nombre }}</option>
-        {% endfor %}
+      <select id="filtroEstado" class="filtro-input">
+        <option value="">Todos los estados</option>
+        <option value="DISP">Disponible</option>
+        <option value="BAJO">Stock Bajo</option>
+        <option value="AGOT">Agotado</option>
       </select>
     </div>
 
     <div class="filtro-grupo">
       <label>
-        <i class="fa-solid fa-chart-bar"></i>
-        Estado
+        <i class="fa-solid fa-location-dot"></i>
+        Estante
       </label>
-      <select id="filtroEstado" class="filtro-input">
-        <option value="">Todos los estados</option>
-        <option value="ALTO">Alto (≥80%)</option>
-        <option value="MEDIO">Medio (40-80%)</option>
-        <option value="BAJO">Bajo (<40%)</option>
-      </select>
+      <input 
+        type="text" 
+        id="filtroEstante" 
+        class="filtro-input" 
+        placeholder="Ej: A1, B2..."
+      >
     </div>
 
     <button class="btn-limpiar" onclick="limpiarFiltros()">
@@ -441,7 +437,7 @@
 
   <!-- Contador de resultados -->
   <div class="resultados-info">
-    Mostrando <strong id="contadorResultados">{{ total_utiles }}</strong> de <strong id="totalProductos">{{ total_utiles }}</strong> útiles
+    Mostrando <strong id="contadorResultados">{{ total_productos }}</strong> de <strong id="totalProductos">{{ total_productos }}</strong> productos
   </div>
 
   <!-- Tabla de inventario -->
@@ -451,72 +447,53 @@
         <thead>
           <tr>
             <th>Código</th>
-            <th>Útil Escolar</th>
+            <th>Nombre</th>
             <th>Descripción</th>
-            <th>Salón</th>
-            <th>Cant. Pedida</th>
-            <th>Total Pedido</th>
-            <th>Total Entregado</th>
-            <th>Nivel Entregas</th>
+            <th>Cantidad</th>
+            <th>Unidad</th>
+            <th>Ubicación</th>
             <th>Estado</th>
+            <th>Fecha Ingreso</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody id="tablaBody">
           
-          {% for item in utiles %}
-          <tr data-nombre="{{ item.util.nombre|lower }}" 
-              data-salon="{{ item.util.salon.nombre|lower }}"
-              data-estado="{{ item.estado }}">
+          {% for producto in productos %}
+          <tr data-nombre="{{ producto.nombre|lower }}" 
+              data-estado="{{ producto.estado }}" 
+              data-estante="{{ producto.estante|lower }}">
             
-            <td data-label="Código" class="codigo">UTL-{{ item.util.pk|stringformat:"03d" }}</td>
-            <td data-label="Útil" class="nombre">{{ item.util.nombre }}</td>
-            <td data-label="Descripción">
-              {% if item.util.descripcion %}
-                {{ item.util.descripcion }}
-              {% else %}
-                <span style="color:#bbb;">—</span>
-              {% endif %}
-            </td>
-            <td data-label="Salón">
-              <span class="salon-badge">{{ item.util.salon.nombre }}</span>
-            </td>
-            <td data-label="Cant. Pedida" class="cantidad">{{ item.util.cantidad }}</td>
-            <td data-label="Total Pedido" class="cantidad">{{ item.total_pedido }}</td>
-            <td data-label="Total Entregado" class="cantidad">{{ item.total_entregado }}</td>
-            <td data-label="Nivel Entregas" style="font-size:13px; color:#666;">
-              {{ item.entregas_completas }} completas <br>
-              {{ item.entregas_parciales }} parciales <br>
-              {{ item.entregas_pendientes }} pendientes
-            </td>
+            <td data-label="Código" class="codigo">{{ producto.codigo_producto }}</td>
+            <td data-label="Nombre" class="nombre">{{ producto.nombre }}</td>
+            <td data-label="Descripción">{{ producto.descripcion }}</td>
+            <td data-label="Cantidad" class="cantidad">{{ producto.cantidad }}</td>
+            <td data-label="Unidad">{{ producto.unidad }}</td>
+            <td data-label="Ubicación">{{ producto.estante }}</td>
             <td data-label="Estado">
-              {% if item.estado == 'ALTO' %}
-                <span class="badge estado-alto">
-                  <i class="fa-solid fa-circle-check"></i> 
-                  Alto ({{ item.porcentaje_entregado }}%)
-                </span>
-              {% elif item.estado == 'MEDIO' %}
-                <span class="badge estado-medio">
-                  <i class="fa-solid fa-hourglass-half"></i> 
-                  Medio ({{ item.porcentaje_entregado }}%)
-                </span>
-              {% else %}
-                <span class="badge estado-bajo">
-                  <i class="fa-solid fa-exclamation-triangle"></i> 
-                  Bajo ({{ item.porcentaje_entregado }}%)
-                </span>
+              {% if producto.estado == 'DISP' %}
+                <span class="badge estado-disponible">Disponible</span>
+              {% elif producto.estado == 'BAJO' %}
+                <span class="badge estado-bajo">Stock Bajo</span>
+              {% elif producto.estado == 'AGOT' %}
+                <span class="badge estado-agotado">Agotado</span>
               {% endif %}
             </td>
+            <td data-label="Fecha Ingreso">{{ producto.fecha_ingreso|date:"d/m/Y" }}</td>
             <td data-label="Acciones" class="acciones">
-              <a href="{% url 'lista_utiles' item.util.salon.pk %}" class="btn-icon btn-ver" title="Ver en salón">
-                <i class="fa-solid fa-eye"></i>
-              </a>
+              <button class="btn-icon btn-danger btn-eliminar" 
+                      title="Eliminar" 
+                      type="button"
+                      data-id="{{ producto.id_producto }}" 
+                      data-nombre="{{ producto.nombre }}">
+                <i class="fa-solid fa-trash"></i>
+              </button>
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="10" style="text-align: center; padding: 2rem;">
-              No hay útiles registrados en el sistema
+            <td colspan="9" style="text-align: center; padding: 2rem;">
+              No hay productos registrados en el Almacén de Útiles
             </td>
           </tr>
           {% endfor %}
@@ -529,46 +506,46 @@
   <!-- Mensaje si no hay resultados -->
   <div id="sinResultados" class="sin-resultados" style="display: none;">
     <i class="fa-solid fa-box-open"></i>
-    <p>No se encontraron útiles con los filtros seleccionados</p>
+    <p>No se encontraron productos con los filtros seleccionados</p>
   </div>
 
 </div>
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-// FILTRADO EN TIEMPO REAL
+// FILTRADO EN TIEMPO REAL (EXACTAMENTE igual que Inventario AG)
 // ══════════════════════════════════════════════════════════════════
 
 const filtroNombre = document.getElementById('filtroNombre');
-const filtroSalon = document.getElementById('filtroSalon');
 const filtroEstado = document.getElementById('filtroEstado');
+const filtroEstante = document.getElementById('filtroEstante');
 const tablaBody = document.getElementById('tablaBody');
 const contadorResultados = document.getElementById('contadorResultados');
 const totalProductos = document.getElementById('totalProductos');
 const sinResultados = document.getElementById('sinResultados');
 
-// Total de útiles
+// Total de productos
 const totalFilas = tablaBody.querySelectorAll('tr[data-nombre]').length;
 totalProductos.textContent = totalFilas;
 
 function filtrarTabla() {
   const nombre = filtroNombre.value.toLowerCase();
-  const salon = filtroSalon.value.toLowerCase();
   const estado = filtroEstado.value;
+  const estante = filtroEstante.value.toLowerCase();
   
   const filas = tablaBody.querySelectorAll('tr[data-nombre]');
   let contador = 0;
   
   filas.forEach(fila => {
     const dataNombre = fila.getAttribute('data-nombre');
-    const dataSalon = fila.getAttribute('data-salon');
     const dataEstado = fila.getAttribute('data-estado');
+    const dataEstante = fila.getAttribute('data-estante');
     
     const cumpleNombre = nombre === '' || dataNombre.includes(nombre);
-    const cumpleSalon = salon === '' || dataSalon === salon;
     const cumpleEstado = estado === '' || dataEstado === estado;
+    const cumpleEstante = estante === '' || dataEstante.includes(estante);
     
-    if (cumpleNombre && cumpleSalon && cumpleEstado) {
+    if (cumpleNombre && cumpleEstado && cumpleEstante) {
       fila.style.display = '';
       contador++;
     } else {
@@ -588,35 +565,30 @@ function filtrarTabla() {
   }
 }
 
-// Eventos de filtrado
+// Eventos de filtrado en tiempo real
 filtroNombre.addEventListener('input', filtrarTabla);
-filtroSalon.addEventListener('change', filtrarTabla);
 filtroEstado.addEventListener('change', filtrarTabla);
+filtroEstante.addEventListener('input', filtrarTabla);
 
 function limpiarFiltros() {
   filtroNombre.value = '';
-  filtroSalon.value = '';
   filtroEstado.value = '';
+  filtroEstante.value = '';
   filtrarTabla();
 }
 
-// Eliminar duplicados en el select de salones
-(function() {
-  const selectSalon = document.getElementById('filtroSalon');
-  const opciones = Array.from(selectSalon.options);
-  const salones = new Set();
-  const primeraOpcion = opciones[0]; // Guardar "Todos los salones"
-  
-  selectSalon.innerHTML = '';
-  selectSalon.appendChild(primeraOpcion);
-  
-  opciones.slice(1).forEach(opcion => {
-    if (!salones.has(opcion.value) && opcion.value) {
-      salones.add(opcion.value);
-      selectSalon.appendChild(opcion);
+// Manejo de eliminación con event delegation
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.btn-eliminar')) {
+    const btn = e.target.closest('.btn-eliminar');
+    const id = btn.getAttribute('data-id');
+    const nombre = btn.getAttribute('data-nombre');
+    
+    if (confirm('¿Estás seguro de eliminar el producto "' + nombre + '"?')) {
+      window.location.href = '/eliminar-producto-utiles/' + id + '/';
     }
-  });
-})();
+  }
+});
 </script>
 
 {% endblock %}
