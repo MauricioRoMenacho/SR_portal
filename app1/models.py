@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 # MODELO DE UNIDADES - VERSIÓN SIMPLE
 class Unidad(models.Model):
@@ -210,7 +211,6 @@ class Cotizacion(models.Model):
         ordering = ['-fecha_creacion']
 
 
-
 class Salon(models.Model):
     TURNO_CHOICES = [
         ('Mañana', 'Mañana'),
@@ -227,7 +227,7 @@ class Salon(models.Model):
     ]
 
     nombre = models.CharField(max_length=100)
-    codigo = models.CharField(max_length=10, unique=True)  # ej: "EULER", "PITAGORAS"
+    codigo = models.CharField(max_length=10, unique=True)
     profesora = models.CharField(max_length=150)
     grado = models.IntegerField(choices=GRADO_CHOICES)
     turno = models.CharField(max_length=10, choices=TURNO_CHOICES, default='Mañana')
@@ -259,6 +259,8 @@ class Salon(models.Model):
         return self.alumnos.filter(entrega_completada=False).count()
 
 
+from django.db import models
+
 class Alumno(models.Model):
     SEXO_CHOICES = [
         ('M', 'Masculino'),
@@ -266,7 +268,7 @@ class Alumno(models.Model):
     ]
 
     salon = models.ForeignKey(
-        Salon,
+        'Salon',
         on_delete=models.CASCADE,
         related_name='alumnos'
     )
@@ -274,6 +276,7 @@ class Alumno(models.Model):
     dni = models.CharField(max_length=10, unique=True)
     sexo = models.CharField(max_length=1, choices=SEXO_CHOICES, blank=True, default='')
     email = models.EmailField(blank=True, null=True)
+
     entrega_completada = models.BooleanField(default=False)
     fecha_entrega = models.DateTimeField(blank=True, null=True)
 
@@ -284,3 +287,124 @@ class Alumno(models.Model):
 
     def __str__(self):
         return f"{self.nombre} — {self.salon.nombre}"
+
+    @property
+    def estado_entrega(self):
+        """
+        Estados posibles:
+        - sin_pedido
+        - no_entrego
+        - parcial
+        - completo
+        """
+        total = self.entregas.count()
+        if total == 0:
+            return 'sin_pedido'
+
+        entregados = self.entregas.filter(entregado=True).count()
+
+        if entregados == 0:
+            return 'no_entrego'
+        elif entregados < total:
+            return 'parcial'
+        return 'completo'
+
+    @property
+    def porcentaje_entrega(self):
+        """Porcentaje de útiles entregados"""
+        total = self.entregas.count()
+        if total == 0:
+            return 0
+        entregados = self.entregas.filter(entregado=True).count()
+        return round((entregados / total) * 100)
+
+
+# ============================================================
+# NUEVO MODELO: Lista de Útiles por Salón
+# ============================================================
+
+class UtilEscolar(models.Model):
+    salon = models.ForeignKey(
+        Salon,
+        on_delete=models.CASCADE,
+        related_name='utiles'
+    )
+    nombre = models.CharField(max_length=200)
+    cantidad = models.IntegerField(default=1)
+    descripcion = models.TextField(blank=True, null=True)
+    orden = models.IntegerField(default=0)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['orden', 'nombre']
+        verbose_name = 'Útil Escolar'
+        verbose_name_plural = 'Útiles Escolares'
+
+    def __str__(self):
+        return f"{self.nombre} ({self.cantidad}) - {self.salon.nombre}"
+
+
+# ============================================================
+# NUEVO MODELO: Entrega de Útiles por Alumno
+# ============================================================
+
+class EntregaUtil(models.Model):
+    alumno = models.ForeignKey(
+        Alumno,
+        on_delete=models.CASCADE,
+        related_name='entregas'
+    )
+    util = models.ForeignKey(
+        UtilEscolar,
+        on_delete=models.CASCADE,
+        related_name='entregas'
+    )
+    entregado = models.BooleanField(default=False)
+    fecha_entrega = models.DateTimeField(blank=True, null=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    observaciones = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['util__orden', 'util__nombre']
+        verbose_name = 'Entrega de Útil'
+        verbose_name_plural = 'Entregas de Útiles'
+        unique_together = ['alumno', 'util']
+
+    def __str__(self):
+        estado = "✓" if self.entregado else "✗"
+        return f"{estado} {self.util.nombre} - {self.alumno.nombre}"
+
+    def marcar_entregado(self):
+        if not self.entregado:
+            self.entregado = True
+            self.fecha_entrega = timezone.now()
+            self.save()
+
+    def marcar_pendiente(self):
+        if self.entregado:
+            self.entregado = False
+            self.fecha_entrega = None
+            self.save()
+
+
+# ============================================================
+# NUEVO MODELO: Historial de Cambios
+# ============================================================
+
+class HistorialEntrega(models.Model):
+    entrega = models.ForeignKey(
+        EntregaUtil,
+        on_delete=models.CASCADE,
+        related_name='historial'
+    )
+    accion = models.CharField(max_length=50)
+    fecha = models.DateTimeField(auto_now_add=True)
+    observacion = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Historial de Entrega'
+        verbose_name_plural = 'Historial de Entregas'
+
+    def __str__(self):
+        return f"{self.accion} - {self.entrega.alumno.nombre} - {self.fecha}"

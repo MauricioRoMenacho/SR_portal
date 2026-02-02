@@ -1,0 +1,325 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Lista de Útiles - {{ salon.nombre }}{% endblock %}
+
+{% block content %}
+<style>
+    .container-utiles {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px;
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .header-title h1 {
+        font-size: 28px;
+        color: #333;
+        margin: 0 0 5px 0;
+    }
+
+    .header-title p {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .btn-back {
+        padding: 10px 20px;
+        background: #f0f0f0;
+        border: none;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #333;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+
+    .btn-back:hover {
+        background: #148129;
+        color: white;
+    }
+
+    .grid-container {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 24px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+        font-size: 20px;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .util-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        transition: all 0.3s;
+    }
+
+    .util-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-color: #148129;
+    }
+
+    .util-info h3 {
+        font-size: 16px;
+        color: #333;
+        margin: 0 0 4px 0;
+    }
+
+    .util-info p {
+        font-size: 13px;
+        color: #666;
+        margin: 0;
+    }
+
+    .util-cantidad {
+        background: #f0f0f0;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        color: #333;
+        margin-right: 12px;
+    }
+
+    .util-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+
+    .btn-icon.delete {
+        background: #fee;
+        color: #e53e3e;
+    }
+
+    .btn-icon.delete:hover {
+        background: #e53e3e;
+        color: white;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #148129;
+        box-shadow: 0 0 0 3px rgba(20, 129, 41, 0.1);
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 14px;
+        background: #148129;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-submit:hover {
+        background: #106020;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(20, 129, 41, 0.3);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #999;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    .messages {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 20px;
+    }
+
+    .messages li {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .messages .success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+
+    .messages .error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    @media (max-width: 968px) {
+        .grid-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="container-utiles">
+    <div class="header-section">
+        <div class="header-title">
+            <h1>Lista de Útiles - {{ salon.nombre }}</h1>
+            <p>{{ salon.get_grado_display }} · {{ salon.profesora }}</p>
+        </div>
+        <a href="{% url 'detalle_salon' salon.pk %}" class="btn-back">
+            <i class="fa-solid fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}">
+            <i class="fa-solid fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+            {{ message }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <div class="grid-container">
+        <div class="card">
+            <h2><i class="fa-solid fa-list"></i> Útiles Registrados ({{ utiles.count }})</h2>
+            
+            {% if utiles %}
+                {% for util in utiles %}
+                <div class="util-item">
+                    <div class="util-info">
+                        <h3>{{ util.nombre }}</h3>
+                        {% if util.descripcion %}
+                        <p>{{ util.descripcion }}</p>
+                        {% endif %}
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <span class="util-cantidad">x{{ util.cantidad }}</span>
+                        <div class="util-actions">
+                            <form method="post" action="{% url 'eliminar_util' util.pk %}" style="margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-icon delete" 
+                                        onclick="return confirm('¿Eliminar este útil?')">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-inbox"></i>
+                    <p>No hay útiles registrados aún</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2><i class="fa-solid fa-plus-circle"></i> Agregar Útil</h2>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="{{ form.nombre.id_for_label }}">Nombre del útil</label>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                        <div style="color: #e53e3e; font-size: 13px; margin-top: 4px;">
+                            {{ form.nombre.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.cantidad.id_for_label }}">Cantidad</label>
+                    {{ form.cantidad }}
+                    {% if form.cantidad.errors %}
+                        <div style="color: #e53e3e; font-size: 13px; margin-top: 4px;">
+                            {{ form.cantidad.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.descripcion.id_for_label }}">Descripción (opcional)</label>
+                    {{ form.descripcion }}
+                    {% if form.descripcion.errors %}
+                        <div style="color: #e53e3e; font-size: 13px; margin-top: 4px;">
+                            {{ form.descripcion.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <i class="fa-solid fa-plus"></i> Agregar Útil
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

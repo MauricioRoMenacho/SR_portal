@@ -51,6 +51,7 @@
     }
     .stat-card:nth-child(2) { border-left-color: #06d6a0; }
     .stat-card:nth-child(3) { border-left-color: #ffd23f; }
+    .stat-card:nth-child(4) { border-left-color: #3b82f6; }
     .stat-card:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 
     .stat-label { font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
@@ -91,6 +92,9 @@
 
     .btn-secondary { background: white; color: #333; border: 1px solid #ddd; }
     .btn-secondary:hover { background: #f1f8f4; border-color: #148129; color: #148129; }
+
+    .btn-warning { background: #ffd23f; color: #333; border: 1px solid #ffc107; }
+    .btn-warning:hover { background: #ffc107; color: #fff; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(255,193,7,0.3); }
 
     /* ==================== UPLOAD AREA ==================== */
     .upload-area {
@@ -150,15 +154,19 @@
     }
     .status-badge.entregado { background: #d1fae5; color: #065f46; }
     .status-badge.pendiente { background: #fef3c7; color: #92400e; }
+    .status-badge.parcial { background: #dbeafe; color: #1e40af; }
+    .status-badge.sin-lista { background: #f3f4f6; color: #6b7280; }
 
     .actions-cell { display: flex; gap: 8px; }
     .action-btn {
         width: 34px; height: 34px; border: none; border-radius: 8px;
         display: flex; align-items: center; justify-content: center;
         cursor: pointer; transition: all 0.2s; background: #f9f9f9; color: #666;
+        text-decoration: none;
     }
     .action-btn:hover { transform: scale(1.1); }
-    .action-btn.toggle:hover { background: #148129; color: white; }
+    .action-btn.view:hover { background: #148129; color: white; }
+    .action-btn.edit:hover { background: #3b82f6; color: white; }
     .action-btn.delete:hover { background: #ef476f; color: white; }
 
     /* ==================== EMPTY STATE ==================== */
@@ -217,15 +225,19 @@
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-label">Total Alumnos</div>
-            <div class="stat-value">{{ salon.total_alumnos }}</div>
+            <div class="stat-value" id="stat-total">{{ salon.total_alumnos }}</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Entregados</div>
-            <div class="stat-value">{{ salon.total_entregados }}</div>
+            <div class="stat-label">Completos</div>
+            <div class="stat-value" id="stat-completos">{{ salon.total_entregados }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Parciales</div>
+            <div class="stat-value" id="stat-parciales">{{ salon.total_parciales|default:0 }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Pendientes</div>
-            <div class="stat-value">{{ salon.total_pendientes }}</div>
+            <div class="stat-value" id="stat-pendientes">{{ salon.total_pendientes }}</div>
         </div>
     </div>
 
@@ -251,6 +263,9 @@
             </div>
         </div>
         <div class="toolbar-right">
+            <a href="{% url 'lista_utiles' salon.pk %}" class="btn btn-warning" title="Gestionar lista de útiles">
+                <i class="fa-solid fa-list-check"></i> Lista de Útiles ({{ total_utiles|default:0 }})
+            </a>
             <button class="btn btn-secondary" id="btnExportar" title="Exportar lista">
                 <i class="fa-solid fa-download"></i> Exportar
             </button>
@@ -268,13 +283,13 @@
                         <th>Alumno</th>
                         <th>DNI</th>
                         <th>Sexo</th>
-                        <th>Estado</th>
+                        <th>Estado Entrega</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for alumno in alumnos %}
-                    <tr id="row-{{ alumno.pk }}">
+                    <tr id="row-{{ alumno.pk }}" data-alumno-id="{{ alumno.pk }}">
                         <td style="color:#999; font-size:13px;">{{ forloop.counter }}</td>
                         <td>
                             <div class="alumno-cell">
@@ -296,17 +311,34 @@
                             {% endif %}
                         </td>
                         <td>
-                            <span class="status-badge {% if alumno.entrega_completada %}entregado{% else %}pendiente{% endif %}" id="status-{{ alumno.pk }}">
-                                <i class="fa-solid fa-{% if alumno.entrega_completada %}check-circle{% else %}clock{% endif %}"></i>
-                                {% if alumno.entrega_completada %}Entregado{% else %}Pendiente{% endif %}
+                            <span class="status-badge-container" id="status-container-{{ alumno.pk }}">
+                                {% if alumno.estado_entrega == 'completo' %}
+                                    <span class="status-badge entregado">
+                                        <i class="fa-solid fa-check-circle"></i> Completo
+                                    </span>
+                                {% elif alumno.estado_entrega == 'parcial' %}
+                                    <span class="status-badge parcial">
+                                        <i class="fa-solid fa-hourglass-half"></i> Parcial ({{ alumno.porcentaje_entrega }}%)
+                                    </span>
+                                {% elif alumno.estado_entrega == 'no_entrego' %}
+                                    <span class="status-badge pendiente">
+                                        <i class="fa-solid fa-clock"></i> No entregó
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge sin-lista">
+                                        <i class="fa-solid fa-minus-circle"></i> Sin lista
+                                    </span>
+                                {% endif %}
                             </span>
                         </td>
                         <td>
                             <div class="actions-cell">
-                                <button class="action-btn toggle" title="{% if alumno.entrega_completada %}Marcar pendiente{% else %}Marcar entregado{% endif %}"
-                                        onclick="toggleEntrega({{ alumno.pk }})">
-                                    <i class="fa-solid fa-{% if alumno.entrega_completada %}rotate-left{% else %}check{% endif %}" id="icon-{{ alumno.pk }}"></i>
-                                </button>
+                                <a href="{% url 'detalle_alumno' alumno.pk %}" class="action-btn view" title="Ver detalle">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                <a href="{% url 'editar_entregas_alumno' alumno.pk %}" class="action-btn edit" title="Editar entregas">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </a>
                                 <button class="action-btn delete" title="Eliminar alumno"
                                         onclick="eliminarAlumno({{ alumno.pk }}, '{{ alumno.nombre }}')">
                                     <i class="fa-solid fa-trash"></i>
@@ -332,7 +364,65 @@
 </div>
 
 <script>
-    // ── Drag & drop ──
+    // ══════════════════════════════════════════════════════════════════
+    // ✨ NUEVA FUNCIÓN: Detectar si venimos de editar entregas
+    // ══════════════════════════════════════════════════════════════════
+    window.addEventListener('DOMContentLoaded', function() {
+        // Si hay un parámetro en la URL indicando que se actualizó
+        const urlParams = new URLSearchParams(window.location.search);
+        const alumnoActualizado = urlParams.get('actualizado');
+        
+        if (alumnoActualizado) {
+            // Recargar datos del alumno específico
+            actualizarDatosAlumno(alumnoActualizado);
+            
+            // Limpiar URL sin recargar página
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    });
+
+    // ══════════════════════════════════════════════════════════════════
+    // ✨ NUEVA FUNCIÓN: Actualizar datos de un alumno vía AJAX
+    // ══════════════════════════════════════════════════════════════════
+    async function actualizarDatosAlumno(alumnoId) {
+        try {
+            const response = await fetch(`/api/alumnos/${alumnoId}/estado/`);
+            const data = await response.json();
+            
+            if (data.ok) {
+                // Actualizar el badge de estado en la fila
+                const statusContainer = document.getElementById(`status-container-${alumnoId}`);
+                if (statusContainer) {
+                    statusContainer.innerHTML = generarBadgeEstado(data.estado, data.porcentaje);
+                }
+                
+                // Actualizar estadísticas globales
+                actualizarEstadisticas();
+            }
+        } catch (error) {
+            console.error('Error al actualizar datos del alumno:', error);
+            // Si falla, recargar la página completa
+            location.reload();
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // ✨ NUEVA FUNCIÓN: Generar HTML del badge de estado
+    // ══════════════════════════════════════════════════════════════════
+    function generarBadgeEstado(estado, porcentaje = 0) {
+        const badges = {
+            'completo': '<span class="status-badge entregado"><i class="fa-solid fa-check-circle"></i> Completo</span>',
+            'parcial': `<span class="status-badge parcial"><i class="fa-solid fa-hourglass-half"></i> Parcial (${porcentaje}%)</span>`,
+            'no_entrego': '<span class="status-badge pendiente"><i class="fa-solid fa-clock"></i> No entregó</span>',
+            'sin_lista': '<span class="status-badge sin-lista"><i class="fa-solid fa-minus-circle"></i> Sin lista</span>'
+        };
+        
+        return badges[estado] || badges['sin_lista'];
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Drag & drop
+    // ══════════════════════════════════════════════════════════════════
     const uploadArea = document.getElementById('uploadArea');
 
     uploadArea.addEventListener('dragover', (e) => {
@@ -353,7 +443,9 @@
         }
     });
 
-    // ── Búsqueda en tiempo real ──
+    // ══════════════════════════════════════════════════════════════════
+    // Búsqueda en tiempo real
+    // ══════════════════════════════════════════════════════════════════
     document.getElementById('searchInput').addEventListener('input', function () {
         const term = this.value.toLowerCase();
         document.querySelectorAll('.data-table tbody tr').forEach(row => {
@@ -361,80 +453,75 @@
         });
     });
 
-    // ── Toggle entrega (AJAX) ──
-    function toggleEntrega(alumnoId) {
-        fetch(`/api/alumnos/${alumnoId}/toggle-entrega/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)[1] }
-        })
-        .then(r => r.json())
-        .then(data => {
-            const badge  = document.getElementById(`status-${alumnoId}`);
-            const icon   = document.getElementById(`icon-${alumnoId}`);
-            
-            if (data.entrega_completada) {
-                badge.className = 'status-badge entregado';
-                badge.innerHTML = '<i class="fa-solid fa-check-circle"></i> Entregado';
-                icon.className = 'fa-solid fa-rotate-left';
-            } else {
-                badge.className = 'status-badge pendiente';
-                badge.innerHTML = '<i class="fa-solid fa-clock"></i> Pendiente';
-                icon.className = 'fa-solid fa-check';
-            }
-            
-            // ✅ Actualizar estadísticas en tiempo real
-            actualizarEstadisticas();
-        })
-        .catch(() => alert('Error al actualizar. Recarga la página.'));
-    }
-
-    // ── Eliminar alumno (AJAX) ──
+    // ══════════════════════════════════════════════════════════════════
+    // Eliminar alumno (AJAX)
+    // ══════════════════════════════════════════════════════════════════
     function eliminarAlumno(alumnoId, nombre) {
         if (!confirm(`¿Eliminar a ${nombre}? Esta acción no se puede deshacer.`)) return;
 
         fetch(`/api/alumnos/${alumnoId}/eliminar/`, {
             method: 'POST',
-            headers: { 'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)[1] }
+            headers: { 'X-CSRFToken': getCsrfToken() }
         })
         .then(r => r.json())
         .then(data => {
             if (data.ok) {
                 document.getElementById(`row-${alumnoId}`).remove();
-                
-                // ✅ Actualizar estadísticas en tiempo real
                 actualizarEstadisticas();
             }
         })
         .catch(() => alert('Error al eliminar. Recarga la página.'));
     }
 
-    // ✅ NUEVA FUNCIÓN: Actualizar estadísticas en tiempo real
+    // ══════════════════════════════════════════════════════════════════
+    // ✅ Actualizar estadísticas en tiempo real
+    // ══════════════════════════════════════════════════════════════════
     function actualizarEstadisticas() {
         const filas = document.querySelectorAll('.data-table tbody tr');
         let totalAlumnos = 0;
-        let totalEntregados = 0;
+        let totalCompletos = 0;
+        let totalParciales = 0;
         let totalPendientes = 0;
+        let totalSinLista = 0;
         
         filas.forEach(fila => {
-            // Solo contar filas que no han sido eliminadas
-            if (fila.id && fila.parentElement) {
+            if (fila.id && fila.parentElement && fila.style.display !== 'none') {
                 totalAlumnos++;
                 const badge = fila.querySelector('.status-badge');
-                if (badge && badge.classList.contains('entregado')) {
-                    totalEntregados++;
-                } else {
-                    totalPendientes++;
+                if (badge) {
+                    if (badge.classList.contains('entregado')) {
+                        totalCompletos++;
+                    } else if (badge.classList.contains('parcial')) {
+                        totalParciales++;
+                    } else if (badge.classList.contains('pendiente')) {
+                        totalPendientes++;
+                    } else if (badge.classList.contains('sin-lista')) {
+                        totalSinLista++;
+                    }
                 }
             }
         });
         
         // Actualizar los valores en las tarjetas de estadísticas
-        const statCards = document.querySelectorAll('.stat-card .stat-value');
-        if (statCards.length >= 3) {
-            statCards[0].textContent = totalAlumnos;
-            statCards[1].textContent = totalEntregados;
-            statCards[2].textContent = totalPendientes;
-        }
+        document.getElementById('stat-total').textContent = totalAlumnos;
+        document.getElementById('stat-completos').textContent = totalCompletos;
+        document.getElementById('stat-parciales').textContent = totalParciales;
+        document.getElementById('stat-pendientes').textContent = totalPendientes;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Exportar lista
+    // ══════════════════════════════════════════════════════════════════
+    document.getElementById('btnExportar').addEventListener('click', function() {
+        window.location.href = `/salones/{{ salon.pk }}/exportar/`;
+    });
+
+    // ══════════════════════════════════════════════════════════════════
+    // Utilidad: Obtener CSRF Token
+    // ══════════════════════════════════════════════════════════════════
+    function getCsrfToken() {
+        const match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? match[1] : '';
     }
 </script>
 

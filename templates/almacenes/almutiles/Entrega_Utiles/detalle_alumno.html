@@ -1,0 +1,352 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}{{ alumno.nombre }} - Detalle{% endblock %}
+
+{% block content %}
+<style>
+    .detalle-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 30px;
+    }
+
+    .header-alumno {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .alumno-info {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .alumno-avatar-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: 700;
+        color: white;
+    }
+
+    .alumno-datos h1 {
+        font-size: 24px;
+        margin: 0 0 8px 0;
+        color: #333;
+    }
+
+    .alumno-datos p {
+        margin: 4px 0;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+
+    .btn-secondary {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .btn-secondary:hover {
+        background: #e0e0e0;
+    }
+
+    .btn-primary {
+        background: #148129;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #106020;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(20, 129, 41, 0.3);
+    }
+
+    .progress-card {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+    }
+
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .progress-header h2 {
+        font-size: 18px;
+        color: #333;
+        margin: 0;
+    }
+
+    .progress-percentage {
+        font-size: 24px;
+        font-weight: 700;
+        color: #148129;
+    }
+
+    .progress-bar-container {
+        background: #f0f0f0;
+        height: 12px;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #148129 0%, #06d6a0 100%);
+        transition: width 0.5s ease;
+    }
+
+    .progress-stats {
+        display: flex;
+        gap: 24px;
+        font-size: 14px;
+        color: #666;
+    }
+
+    .entregas-table {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .entregas-table h2 {
+        padding: 20px 24px;
+        margin: 0;
+        font-size: 18px;
+        color: #333;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead {
+        background: #f9f9f9;
+    }
+
+    th {
+        padding: 14px 24px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    tbody tr {
+        border-bottom: 1px solid #f0f0f0;
+        transition: background 0.2s;
+    }
+
+    tbody tr:hover {
+        background: #f9f9f9;
+    }
+
+    td {
+        padding: 16px 24px;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-success {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        display: block;
+        color: #ddd;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+        color: #666;
+    }
+
+    @media (max-width: 768px) {
+        .header-alumno {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .btn-group {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="detalle-container">
+    <div class="header-alumno">
+        <div class="alumno-info">
+            <div class="alumno-avatar-large">
+                {{ alumno.nombre|first }}
+            </div>
+            <div class="alumno-datos">
+                <h1>{{ alumno.nombre }}</h1>
+                <p><i class="fa-solid fa-id-card"></i> DNI: {{ alumno.dni }}</p>
+                <p><i class="fa-solid fa-school"></i> {{ salon.nombre }} - {{ salon.get_grado_display }}</p>
+                {% if alumno.sexo %}
+                <p><i class="fa-solid fa-{% if alumno.sexo == 'M' %}mars{% else %}venus{% endif %}"></i> 
+                   {{ alumno.get_sexo_display }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'detalle_salon' salon.pk %}" class="btn btn-secondary">
+                <i class="fa-solid fa-arrow-left"></i> Volver
+            </a>
+            <a href="{% url 'editar_entregas_alumno' alumno.pk %}" class="btn btn-primary">
+                <i class="fa-solid fa-pen-to-square"></i> Editar Entregas
+            </a>
+        </div>
+    </div>
+
+    {% if entregas %}
+    <div class="progress-card">
+        <div class="progress-header">
+            <h2>Progreso de Entregas</h2>
+            <span class="progress-percentage">{{ alumno.porcentaje_entrega }}%</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" style="width: {{ alumno.porcentaje_entrega }}%"></div>
+        </div>
+        <div class="progress-stats">
+            <span><i class="fa-solid fa-check-circle" style="color: #148129;"></i> 
+                  {{ entregas|length }} de {{ entregas|length }} útiles</span>
+            <span><i class="fa-solid fa-clock" style="color: #ffd23f;"></i> 
+                  Entregados: {% for e in entregas %}{% if e.entregado %}{{ forloop.counter }}{% endif %}{% endfor %}</span>
+        </div>
+    </div>
+
+    <div class="entregas-table">
+        <h2><i class="fa-solid fa-clipboard-list"></i> Lista de Útiles</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Útil Escolar</th>
+                    <th>Cantidad</th>
+                    <th>Estado</th>
+                    <th>Fecha Entrega</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entrega in entregas %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <strong>{{ entrega.util.nombre }}</strong>
+                        {% if entrega.util.descripcion %}
+                        <br><small style="color: #999;">{{ entrega.util.descripcion }}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ entrega.util.cantidad }}</td>
+                    <td>
+                        {% if entrega.entregado %}
+                        <span class="badge badge-success">
+                            <i class="fa-solid fa-check-circle"></i> Entregado
+                        </span>
+                        {% else %}
+                        <span class="badge badge-pending">
+                            <i class="fa-solid fa-clock"></i> Pendiente
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if entrega.fecha_entrega %}
+                        {{ entrega.fecha_entrega|date:"d/m/Y H:i" }}
+                        {% else %}
+                        <span style="color: #999;">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="entregas-table">
+        <div class="empty-state">
+            <i class="fa-solid fa-inbox"></i>
+            <h3>No hay útiles asignados</h3>
+            <p>Agrega útiles a la lista del salón para que aparezcan aquí</p>
+            <a href="{% url 'lista_utiles' salon.pk %}" class="btn btn-primary" style="margin-top: 16px;">
+                <i class="fa-solid fa-plus"></i> Ir a Lista de Útiles
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

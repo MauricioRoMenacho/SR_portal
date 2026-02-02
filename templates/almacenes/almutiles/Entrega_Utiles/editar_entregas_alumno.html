@@ -1,0 +1,339 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Editar Entregas - {{ alumno.nombre }}{% endblock %}
+
+{% block content %}
+<style>
+    .editar-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 30px;
+    }
+
+    .header-editar {
+        background: white;
+        padding: 20px 24px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .header-editar h1 {
+        font-size: 22px;
+        margin: 0 0 4px 0;
+        color: #333;
+    }
+
+    .header-editar p {
+        margin: 0;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .btn-back-link {
+        padding: 10px 20px;
+        background: #f0f0f0;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #333;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+
+    .btn-back-link:hover {
+        background: #e0e0e0;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .form-header {
+        padding: 20px 24px;
+        background: #f9f9f9;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .form-header h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .form-body {
+        padding: 24px;
+    }
+
+    .util-row {
+        display: grid;
+        grid-template-columns: 60px 1fr 80px;
+        gap: 16px;
+        align-items: start;
+        padding: 20px;
+        border: 2px solid #f0f0f0;
+        border-radius: 10px;
+        margin-bottom: 16px;
+        transition: all 0.3s;
+    }
+
+    .util-row:hover {
+        border-color: #148129;
+        box-shadow: 0 2px 8px rgba(20, 129, 41, 0.1);
+    }
+
+    .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+
+    .checkbox-custom {
+        width: 28px;
+        height: 28px;
+        cursor: pointer;
+        accent-color: #148129;
+    }
+
+    .util-details h3 {
+        font-size: 16px;
+        margin: 0 0 8px 0;
+        color: #333;
+    }
+
+    .util-details p {
+        margin: 0 0 8px 0;
+        font-size: 13px;
+        color: #666;
+    }
+
+    .util-observaciones {
+        margin-top: 12px;
+    }
+
+    .util-observaciones textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 13px;
+        resize: vertical;
+        min-height: 60px;
+    }
+
+    .util-observaciones textarea:focus {
+        outline: none;
+        border-color: #148129;
+        box-shadow: 0 0 0 3px rgba(20, 129, 41, 0.1);
+    }
+
+    .cantidad-badge {
+        background: #f0f0f0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-weight: 700;
+        color: #333;
+        text-align: center;
+        font-size: 14px;
+    }
+
+    .form-footer {
+        padding: 20px 24px;
+        background: #f9f9f9;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+        text-decoration: none;
+    }
+
+    .btn-cancel {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .btn-cancel:hover {
+        background: #e0e0e0;
+    }
+
+    .btn-submit {
+        background: #148129;
+        color: white;
+    }
+
+    .btn-submit:hover {
+        background: #106020;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(20, 129, 41, 0.3);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+
+    .empty-state i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        display: block;
+        color: #ddd;
+    }
+
+    .messages {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 20px;
+    }
+
+    .messages li {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .messages .success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+
+    @media (max-width: 768px) {
+        .header-editar {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .util-row {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .cantidad-badge {
+            width: fit-content;
+        }
+    }
+</style>
+
+<div class="editar-container">
+    <div class="header-editar">
+        <div>
+            <h1>Editar Entregas - {{ alumno.nombre }}</h1>
+            <p>{{ salon.nombre }} - {{ salon.get_grado_display }}</p>
+        </div>
+        <a href="{% url 'detalle_alumno' alumno.pk %}" class="btn-back-link">
+            <i class="fa-solid fa-arrow-left"></i> Volver
+        </a>
+    </div>
+
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}">
+            <i class="fa-solid fa-check-circle"></i>
+            {{ message }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if entregas %}
+    <form method="post" class="form-card">
+        {% csrf_token %}
+        
+        <div class="form-header">
+            <h2><i class="fa-solid fa-clipboard-check"></i> Marcar Entregas</h2>
+        </div>
+
+        <div class="form-body">
+            {% for entrega in entregas %}
+            <div class="util-row">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" 
+                           name="entregado_{{ entrega.pk }}" 
+                           id="check_{{ entrega.pk }}"
+                           class="checkbox-custom"
+                           {% if entrega.entregado %}checked{% endif %}>
+                </div>
+
+                <div class="util-details">
+                    <h3>
+                        <label for="check_{{ entrega.pk }}" style="cursor: pointer;">
+                            {{ entrega.util.nombre }}
+                        </label>
+                    </h3>
+                    {% if entrega.util.descripcion %}
+                    <p>{{ entrega.util.descripcion }}</p>
+                    {% endif %}
+                    
+                    {% if entrega.fecha_entrega %}
+                    <p style="color: #148129;">
+                        <i class="fa-solid fa-check-circle"></i> 
+                        Entregado el {{ entrega.fecha_entrega|date:"d/m/Y H:i" }}
+                    </p>
+                    {% endif %}
+
+                    <div class="util-observaciones">
+                        <textarea name="obs_{{ entrega.pk }}" 
+                                  placeholder="Observaciones (opcional)...">{% if entrega.observaciones %}{{ entrega.observaciones }}{% endif %}</textarea>
+                    </div>
+                </div>
+
+                <div class="cantidad-badge">
+                    x{{ entrega.util.cantidad }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="form-footer">
+            <a href="{% url 'detalle_alumno' alumno.pk %}" class="btn btn-cancel">
+                <i class="fa-solid fa-times"></i> Cancelar
+            </a>
+            <button type="submit" class="btn btn-submit">
+                <i class="fa-solid fa-save"></i> Guardar Cambios
+            </button>
+        </div>
+    </form>
+    {% else %}
+    <div class="form-card">
+        <div class="empty-state">
+            <i class="fa-solid fa-inbox"></i>
+            <h3>No hay útiles asignados</h3>
+            <p>Agrega útiles a la lista del salón primero</p>
+            <a href="{% url 'lista_utiles' salon.pk %}" class="btn btn-submit" style="margin-top: 16px;">
+                <i class="fa-solid fa-plus"></i> Ir a Lista de Útiles
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
