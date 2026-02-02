@@ -56,6 +56,7 @@ urlpatterns = [
     # ═════════════════════════════════════════════════════════════════════
     # ENTREGA DE ÚTILES ESCOLARES - PRINCIPAL
     # ═════════════════════════════════════════════════════════════════════
+    path('inventario-utiles/', Entregautiles.inventario_utiles, name='inventario_utiles'),
     path('entrega-utiles/', Entregautiles.SalonesList.as_view(), name='entrega_utiles'),
 
     # ═════════════════════════════════════════════════════════════════════

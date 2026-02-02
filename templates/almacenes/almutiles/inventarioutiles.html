@@ -1,0 +1,622 @@
+{% extends 'layout.html' %}
+{% load static %}
+
+{% block title %}Inventario de Útiles Escolares - Sistema{% endblock %}
+
+{% block content %}
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   ESTILOS INVENTARIO DE ÚTILES (igual que Inventario AG)
+   ══════════════════════════════════════════════════════════════════ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+.inventario-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px;
+  background-color: transparent;
+}
+
+/* ==================== HEADER ==================== */
+.inventario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  background: white;
+  padding: 24px 28px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.inventario-header h1 {
+  font-size: 26px;
+  color: #333;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inventario-header h1 i {
+  color: #148129;
+  font-size: 28px;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: #148129;
+  color: white;
+  box-shadow: 0 2px 6px rgba(20, 129, 41, 0.3);
+}
+
+.btn-primary:hover {
+  background: #106020;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(20, 129, 41, 0.4);
+}
+
+.btn-secondary {
+  background: white;
+  color: #148129;
+  border: 2px solid #148129;
+}
+
+.btn-secondary:hover {
+  background: #f1f8f4;
+  transform: translateY(-2px);
+}
+
+/* ==================== FILTROS ==================== */
+.filtros-container {
+  background: white;
+  padding: 20px 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.filtro-grupo {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filtro-grupo label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.filtro-grupo label i {
+  color: #148129;
+}
+
+.filtro-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  transition: all 0.3s;
+}
+
+.filtro-input:focus {
+  outline: none;
+  border-color: #148129;
+  box-shadow: 0 0 0 3px rgba(20, 129, 41, 0.1);
+}
+
+.btn-limpiar {
+  padding: 11px 20px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-limpiar:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+/* ==================== CONTADOR ==================== */
+.resultados-info {
+  padding: 12px 0;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.resultados-info strong {
+  color: #148129;
+  font-weight: 700;
+}
+
+/* ==================== TABLA ==================== */
+.tabla-wrapper {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.tabla-container {
+  overflow-x: auto;
+}
+
+.tabla-inventario {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-inventario thead {
+  background: #f9f9f9;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tabla-inventario th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.tabla-inventario tbody tr {
+  border-bottom: 1px solid #eee;
+  transition: all 0.2s;
+}
+
+.tabla-inventario tbody tr:hover {
+  background: #f1f8f4;
+}
+
+.tabla-inventario td {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #333;
+}
+
+/* Columnas específicas */
+.codigo {
+  font-weight: 700;
+  color: #148129;
+  font-family: 'Courier New', monospace;
+}
+
+.nombre {
+  font-weight: 600;
+  color: #333;
+}
+
+.cantidad {
+  font-weight: 700;
+  color: #333;
+  text-align: center;
+}
+
+.salon-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* ==================== BADGES DE ESTADO ==================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estado-alto {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.estado-medio {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.estado-bajo {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ==================== ACCIONES ==================== */
+.acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f9f9f9;
+  color: #666;
+}
+
+.btn-icon:hover {
+  transform: scale(1.1);
+}
+
+.btn-ver {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.btn-ver:hover {
+  background: #1565c0;
+  color: white;
+}
+
+/* ==================== SIN RESULTADOS ==================== */
+.sin-resultados {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.sin-resultados i {
+  font-size: 64px;
+  color: #ddd;
+  margin-bottom: 16px;
+}
+
+.sin-resultados p {
+  font-size: 16px;
+  color: #666;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .inventario-container {
+    padding: 15px;
+  }
+
+  .inventario-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header-buttons {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .btn-primary, .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filtros-container {
+    flex-direction: column;
+  }
+
+  .filtro-grupo {
+    min-width: 100%;
+  }
+
+  .tabla-inventario {
+    font-size: 12px;
+  }
+
+  .tabla-inventario th,
+  .tabla-inventario td {
+    padding: 10px 12px;
+  }
+}
+</style>
+
+<div class="inventario-container">
+  
+  <!-- Header -->
+  <div class="inventario-header">
+    <h1>
+      <i class="fa-solid fa-clipboard-list"></i>
+      Inventario de Útiles Escolares
+    </h1>
+
+    <div class="header-buttons">
+      <a href="{% url 'entrega_utiles' %}">
+        <button class="btn-secondary">
+          <i class="fa-solid fa-arrow-left"></i>
+          Volver a Salones
+        </button>
+      </a>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filtros-container">
+    
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-search"></i>
+        Nombre del Útil
+      </label>
+      <input 
+        type="text" 
+        id="filtroNombre" 
+        class="filtro-input" 
+        placeholder="Escribe para buscar..."
+      >
+    </div>
+
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-school"></i>
+        Salón
+      </label>
+      <select id="filtroSalon" class="filtro-input">
+        <option value="">Todos los salones</option>
+        {% for util in utiles %}
+          <option value="{{ util.util.salon.nombre }}">{{ util.util.salon.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filtro-grupo">
+      <label>
+        <i class="fa-solid fa-chart-bar"></i>
+        Estado
+      </label>
+      <select id="filtroEstado" class="filtro-input">
+        <option value="">Todos los estados</option>
+        <option value="ALTO">Alto (≥80%)</option>
+        <option value="MEDIO">Medio (40-80%)</option>
+        <option value="BAJO">Bajo (<40%)</option>
+      </select>
+    </div>
+
+    <button class="btn-limpiar" onclick="limpiarFiltros()">
+      <i class="fa-solid fa-eraser"></i>
+      Limpiar Filtros
+    </button>
+
+  </div>
+
+  <!-- Contador de resultados -->
+  <div class="resultados-info">
+    Mostrando <strong id="contadorResultados">{{ total_utiles }}</strong> de <strong id="totalProductos">{{ total_utiles }}</strong> útiles
+  </div>
+
+  <!-- Tabla de inventario -->
+  <div class="tabla-wrapper">
+    <div class="tabla-container">
+      <table class="tabla-inventario">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Útil Escolar</th>
+            <th>Descripción</th>
+            <th>Salón</th>
+            <th>Cant. Pedida</th>
+            <th>Total Pedido</th>
+            <th>Total Entregado</th>
+            <th>Nivel Entregas</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaBody">
+          
+          {% for item in utiles %}
+          <tr data-nombre="{{ item.util.nombre|lower }}" 
+              data-salon="{{ item.util.salon.nombre|lower }}"
+              data-estado="{{ item.estado }}">
+            
+            <td data-label="Código" class="codigo">UTL-{{ item.util.pk|stringformat:"03d" }}</td>
+            <td data-label="Útil" class="nombre">{{ item.util.nombre }}</td>
+            <td data-label="Descripción">
+              {% if item.util.descripcion %}
+                {{ item.util.descripcion }}
+              {% else %}
+                <span style="color:#bbb;">—</span>
+              {% endif %}
+            </td>
+            <td data-label="Salón">
+              <span class="salon-badge">{{ item.util.salon.nombre }}</span>
+            </td>
+            <td data-label="Cant. Pedida" class="cantidad">{{ item.util.cantidad }}</td>
+            <td data-label="Total Pedido" class="cantidad">{{ item.total_pedido }}</td>
+            <td data-label="Total Entregado" class="cantidad">{{ item.total_entregado }}</td>
+            <td data-label="Nivel Entregas" style="font-size:13px; color:#666;">
+              {{ item.entregas_completas }} completas <br>
+              {{ item.entregas_parciales }} parciales <br>
+              {{ item.entregas_pendientes }} pendientes
+            </td>
+            <td data-label="Estado">
+              {% if item.estado == 'ALTO' %}
+                <span class="badge estado-alto">
+                  <i class="fa-solid fa-circle-check"></i> 
+                  Alto ({{ item.porcentaje_entregado }}%)
+                </span>
+              {% elif item.estado == 'MEDIO' %}
+                <span class="badge estado-medio">
+                  <i class="fa-solid fa-hourglass-half"></i> 
+                  Medio ({{ item.porcentaje_entregado }}%)
+                </span>
+              {% else %}
+                <span class="badge estado-bajo">
+                  <i class="fa-solid fa-exclamation-triangle"></i> 
+                  Bajo ({{ item.porcentaje_entregado }}%)
+                </span>
+              {% endif %}
+            </td>
+            <td data-label="Acciones" class="acciones">
+              <a href="{% url 'lista_utiles' item.util.salon.pk %}" class="btn-icon btn-ver" title="Ver en salón">
+                <i class="fa-solid fa-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="10" style="text-align: center; padding: 2rem;">
+              No hay útiles registrados en el sistema
+            </td>
+          </tr>
+          {% endfor %}
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mensaje si no hay resultados -->
+  <div id="sinResultados" class="sin-resultados" style="display: none;">
+    <i class="fa-solid fa-box-open"></i>
+    <p>No se encontraron útiles con los filtros seleccionados</p>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// FILTRADO EN TIEMPO REAL
+// ══════════════════════════════════════════════════════════════════
+
+const filtroNombre = document.getElementById('filtroNombre');
+const filtroSalon = document.getElementById('filtroSalon');
+const filtroEstado = document.getElementById('filtroEstado');
+const tablaBody = document.getElementById('tablaBody');
+const contadorResultados = document.getElementById('contadorResultados');
+const totalProductos = document.getElementById('totalProductos');
+const sinResultados = document.getElementById('sinResultados');
+
+// Total de útiles
+const totalFilas = tablaBody.querySelectorAll('tr[data-nombre]').length;
+totalProductos.textContent = totalFilas;
+
+function filtrarTabla() {
+  const nombre = filtroNombre.value.toLowerCase();
+  const salon = filtroSalon.value.toLowerCase();
+  const estado = filtroEstado.value;
+  
+  const filas = tablaBody.querySelectorAll('tr[data-nombre]');
+  let contador = 0;
+  
+  filas.forEach(fila => {
+    const dataNombre = fila.getAttribute('data-nombre');
+    const dataSalon = fila.getAttribute('data-salon');
+    const dataEstado = fila.getAttribute('data-estado');
+    
+    const cumpleNombre = nombre === '' || dataNombre.includes(nombre);
+    const cumpleSalon = salon === '' || dataSalon === salon;
+    const cumpleEstado = estado === '' || dataEstado === estado;
+    
+    if (cumpleNombre && cumpleSalon && cumpleEstado) {
+      fila.style.display = '';
+      contador++;
+    } else {
+      fila.style.display = 'none';
+    }
+  });
+  
+  contadorResultados.textContent = contador;
+  
+  // Mostrar mensaje si no hay resultados
+  if (contador === 0 && totalFilas > 0) {
+    sinResultados.style.display = 'flex';
+    document.querySelector('.tabla-wrapper').style.display = 'none';
+  } else {
+    sinResultados.style.display = 'none';
+    document.querySelector('.tabla-wrapper').style.display = 'block';
+  }
+}
+
+// Eventos de filtrado
+filtroNombre.addEventListener('input', filtrarTabla);
+filtroSalon.addEventListener('change', filtrarTabla);
+filtroEstado.addEventListener('change', filtrarTabla);
+
+function limpiarFiltros() {
+  filtroNombre.value = '';
+  filtroSalon.value = '';
+  filtroEstado.value = '';
+  filtrarTabla();
+}
+
+// Eliminar duplicados en el select de salones
+(function() {
+  const selectSalon = document.getElementById('filtroSalon');
+  const opciones = Array.from(selectSalon.options);
+  const salones = new Set();
+  const primeraOpcion = opciones[0]; // Guardar "Todos los salones"
+  
+  selectSalon.innerHTML = '';
+  selectSalon.appendChild(primeraOpcion);
+  
+  opciones.slice(1).forEach(opcion => {
+    if (!salones.has(opcion.value) && opcion.value) {
+      salones.add(opcion.value);
+      selectSalon.appendChild(opcion);
+    }
+  });
+})();
+</script>
+
+{% endblock %}

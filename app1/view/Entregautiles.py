@@ -10,6 +10,56 @@ import openpyxl
 from ..models import Salon, Alumno, UtilEscolar, EntregaUtil, HistorialEntrega
 from ..forms import SalonForm, UtilEscolarForm, EntregaUtilForm
 
+# ═════════════════════════════════════════════════════════════════════
+# INVENTARIO DE ÚTILES ESCOLARES
+# ═════════════════════════════════════════════════════════════════════
+
+def inventario_utiles(request):
+    """Vista de inventario general de útiles escolares"""
+    utiles = UtilEscolar.objects.all().select_related('salon').order_by('salon__nombre', 'orden', 'nombre')
+    
+    # Calcular estadísticas por útil
+    utiles_con_estadisticas = []
+    for util in utiles:
+        # Contar entregas totales, completas y pendientes de este útil
+        total_entregas = util.entregas.count()
+        entregas_completas = util.entregas.filter(cantidad_entregada__gte=util.cantidad).count()
+        entregas_parciales = util.entregas.filter(cantidad_entregada__gt=0, cantidad_entregada__lt=util.cantidad).count()
+        entregas_pendientes = util.entregas.filter(cantidad_entregada=0).count()
+        
+        # Total de cantidad pedida vs entregada
+        total_pedido = total_entregas * util.cantidad
+        total_entregado = sum(e.cantidad_entregada for e in util.entregas.all())
+        
+        # Estado del útil (basado en el nivel de entregas)
+        porcentaje_entregado = (total_entregado / total_pedido * 100) if total_pedido > 0 else 0
+        
+        if porcentaje_entregado >= 80:
+            estado = 'ALTO'  # Alto nivel de entregas
+        elif porcentaje_entregado >= 40:
+            estado = 'MEDIO'  # Nivel medio
+        else:
+            estado = 'BAJO'  # Bajo nivel de entregas
+        
+        utiles_con_estadisticas.append({
+            'util': util,
+            'total_entregas': total_entregas,
+            'entregas_completas': entregas_completas,
+            'entregas_parciales': entregas_parciales,
+            'entregas_pendientes': entregas_pendientes,
+            'total_pedido': total_pedido,
+            'total_entregado': total_entregado,
+            'porcentaje_entregado': round(porcentaje_entregado, 1),
+            'estado': estado
+        })
+    
+    context = {
+        'utiles': utiles_con_estadisticas,
+        'total_utiles': len(utiles_con_estadisticas)
+    }
+    
+    return render(request, 'almacenes/almutiles/inventarioutiles.html', context)
+
 
 # ═════════════════════════════════════════════════════════════════════
 # SALONES
