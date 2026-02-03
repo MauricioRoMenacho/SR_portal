@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 {% load static %}
 
-{% block title %}Lista de Útiles - {{ salon.nombre }}{% endblock %}
+{% block title %}Lista de Utiles - {{ salon.nombre }}{% endblock %}
 
 {% block content %}
 <style>
@@ -50,7 +50,7 @@
 
     .grid-container {
         display: grid;
-        grid-template-columns: 1fr 400px;
+        grid-template-columns: 1fr 450px;
         gap: 24px;
     }
 
@@ -214,6 +214,119 @@
         border: 1px solid #fecaca;
     }
 
+    /* TABS */
+    .tabs-container {
+        margin-bottom: 20px;
+    }
+
+    .tabs-header {
+        display: flex;
+        border-bottom: 2px solid #e0e0e0;
+        gap: 4px;
+    }
+
+    .tab-button {
+        padding: 12px 20px;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #666;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 14px;
+    }
+
+    .tab-button.active {
+        color: #148129;
+        border-bottom-color: #148129;
+    }
+
+    .tab-button:hover {
+        color: #148129;
+        background: #f1f8f4;
+    }
+
+    .tab-content {
+        display: none;
+        padding-top: 20px;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* SELECTOR DE PRODUCTOS */
+    .producto-selector {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 8px;
+    }
+
+    .producto-item {
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .producto-item:hover {
+        border-color: #148129;
+        background: #f1f8f4;
+    }
+
+    .producto-item.selected {
+        border-color: #148129;
+        background: #e6f7e9;
+    }
+
+    .producto-item-info h4 {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .producto-item-info p {
+        margin: 0;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .producto-stock {
+        background: #148129;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .producto-stock.bajo {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .producto-stock.agotado {
+        background: #e53e3e;
+    }
+
+    .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        font-size: 13px;
+        color: #1565c0;
+    }
+
     @media (max-width: 968px) {
         .grid-container {
             grid-template-columns: 1fr;
@@ -224,7 +337,7 @@
 <div class="container-utiles">
     <div class="header-section">
         <div class="header-title">
-            <h1>Lista de Útiles - {{ salon.nombre }}</h1>
+            <h1>Lista de Utiles - {{ salon.nombre }}</h1>
             <p>{{ salon.get_grado_display }} · {{ salon.profesora }}</p>
         </div>
         <a href="{% url 'detalle_salon' salon.pk %}" class="btn-back">
@@ -245,7 +358,7 @@
 
     <div class="grid-container">
         <div class="card">
-            <h2><i class="fa-solid fa-list"></i> Útiles Registrados ({{ utiles.count }})</h2>
+            <h2><i class="fa-solid fa-list"></i> Utiles Registrados ({{ utiles.count }})</h2>
             
             {% if utiles %}
                 {% for util in utiles %}
@@ -262,7 +375,7 @@
                             <form method="post" action="{% url 'eliminar_util' util.pk %}" style="margin: 0;">
                                 {% csrf_token %}
                                 <button type="submit" class="btn-icon delete" 
-                                        onclick="return confirm('¿Eliminar este útil?')">
+                                        onclick="return confirm('¿Eliminar este util?')">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </form>
@@ -273,53 +386,171 @@
             {% else %}
                 <div class="empty-state">
                     <i class="fa-solid fa-inbox"></i>
-                    <p>No hay útiles registrados aún</p>
+                    <p>No hay utiles registrados aun</p>
                 </div>
             {% endif %}
         </div>
 
         <div class="card">
-            <h2><i class="fa-solid fa-plus-circle"></i> Agregar Útil</h2>
+            <h2><i class="fa-solid fa-plus-circle"></i> Agregar Util</h2>
             
-            <form method="post">
-                {% csrf_token %}
-                
-                <div class="form-group">
-                    <label for="{{ form.nombre.id_for_label }}">Nombre del útil</label>
-                    {{ form.nombre }}
-                    {% if form.nombre.errors %}
-                        <div style="color: #e53e3e; font-size: 13px; margin-top: 4px;">
-                            {{ form.nombre.errors }}
+            <div class="tabs-container">
+                <div class="tabs-header">
+                    <button class="tab-button active" onclick="switchTab('inventario')">
+                        <i class="fa-solid fa-warehouse"></i> Desde Inventario
+                    </button>
+                    <button class="tab-button" onclick="switchTab('personalizado')">
+                        <i class="fa-solid fa-pen"></i> Personalizado
+                    </button>
+                </div>
+
+                <!-- TAB: DESDE INVENTARIO -->
+                <div id="tab-inventario" class="tab-content active">
+                    <div class="info-box">
+                        <i class="fa-solid fa-info-circle"></i> Selecciona un producto del Almacen de Utiles
+                    </div>
+
+                    {% if productos_inventario %}
+                    <form method="post" id="formInventario">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_agregar" value="inventario">
+                        <input type="hidden" name="producto_id" id="producto_id_selected">
+
+                        <div class="form-group">
+                            <label>Productos Disponibles ({{ productos_inventario.count }})</label>
+                            <div class="producto-selector">
+                                {% for producto in productos_inventario %}
+                                <div class="producto-item" 
+                                     data-producto-id="{{ producto.id_producto }}"
+                                     data-nombre="{{ producto.nombre }}"
+                                     onclick="selectProducto(this)">
+                                    <div class="producto-item-info">
+                                        <h4>{{ producto.nombre }}</h4>
+                                        <p>{{ producto.descripcion|default:"Sin descripcion" }} | Stock: {{ producto.cantidad }} {{ producto.unidad.abreviatura|default:producto.unidad.nombre }}</p>
+                                    </div>
+                                    <span class="producto-stock {% if producto.cantidad == 0 %}agotado{% elif producto.cantidad < 10 %}bajo{% endif %}">
+                                        {{ producto.cantidad }}
+                                    </span>
+                                </div>
+                                {% endfor %}
+                            </div>
                         </div>
+
+                        <div class="form-group">
+                            <label for="cantidad_inv">Cantidad a solicitar</label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   id="cantidad_inv" 
+                                   name="cantidad" 
+                                   min="1" 
+                                   value="1" 
+                                   required>
+                        </div>
+
+                        <button type="submit" class="btn-submit" id="btnAgregarInventario" disabled>
+                            <i class="fa-solid fa-plus"></i> Agregar desde Inventario
+                        </button>
+                    </form>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fa-solid fa-box-open"></i>
+                        <p>No hay productos en el Almacen de Utiles</p>
+                        <p style="font-size: 12px; margin-top: 8px;">
+                            <a href="{% url 'inventario_utiles' %}" style="color: #148129;">Ir al inventario</a>
+                        </p>
+                    </div>
                     {% endif %}
                 </div>
 
-                <div class="form-group">
-                    <label for="{{ form.cantidad.id_for_label }}">Cantidad</label>
-                    {{ form.cantidad }}
-                    {% if form.cantidad.errors %}
-                        <div style="color: #e53e3e; font-size: 13px; margin-top: 4px;">
-                            {{ form.cantidad.errors }}
-                        </div>
-                    {% endif %}
-                </div>
+                <!-- TAB: PERSONALIZADO -->
+                <div id="tab-personalizado" class="tab-content">
+                    <div class="info-box">
+                        <i class="fa-solid fa-info-circle"></i> Crea un util personalizado no registrado en inventario
+                    </div>
 
-                <div class="form-group">
-                    <label for="{{ form.descripcion.id_for_label }}">Descripción (opcional)</label>
-                    {{ form.descripcion }}
-                    {% if form.descripcion.errors %}
-                        <div style="color: #e53e3e; font-size: 13px; margin-top: 4px;">
-                            {{ form.descripcion.errors }}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="tipo_agregar" value="personalizado">
+                        
+                        <div class="form-group">
+                            <label for="{{ form.nombre.id_for_label }}">Nombre del util</label>
+                            {{ form.nombre }}
+                            {% if form.nombre.errors %}
+                                <div style="color: #e53e3e; font-size: 13px; margin-top: 4px;">
+                                    {{ form.nombre.errors }}
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
-                </div>
 
-                <button type="submit" class="btn-submit">
-                    <i class="fa-solid fa-plus"></i> Agregar Útil
-                </button>
-            </form>
+                        <div class="form-group">
+                            <label for="{{ form.cantidad.id_for_label }}">Cantidad</label>
+                            {{ form.cantidad }}
+                            {% if form.cantidad.errors %}
+                                <div style="color: #e53e3e; font-size: 13px; margin-top: 4px;">
+                                    {{ form.cantidad.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.descripcion.id_for_label }}">Descripcion (opcional)</label>
+                            {{ form.descripcion }}
+                            {% if form.descripcion.errors %}
+                                <div style="color: #e53e3e; font-size: 13px; margin-top: 4px;">
+                                    {{ form.descripcion.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <button type="submit" class="btn-submit">
+                            <i class="fa-solid fa-plus"></i> Agregar Util Personalizado
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+    // Manejo de tabs
+    function switchTab(tabName) {
+        // Remover active de todos los botones y contenidos
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        // Activar el tab seleccionado
+        event.target.classList.add('active');
+        document.getElementById('tab-' + tabName).classList.add('active');
+    }
+
+    // Seleccion de producto
+    let productoSeleccionado = null;
+
+    function selectProducto(element) {
+        // Remover seleccion anterior
+        document.querySelectorAll('.producto-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // Marcar como seleccionado
+        element.classList.add('selected');
+        
+        // Guardar ID del producto
+        productoSeleccionado = element.dataset.productoId;
+        document.getElementById('producto_id_selected').value = productoSeleccionado;
+        
+        // Habilitar boton
+        document.getElementById('btnAgregarInventario').disabled = false;
+    }
+
+    // Validar formulario de inventario
+    document.getElementById('formInventario')?.addEventListener('submit', function(e) {
+        if (!productoSeleccionado) {
+            e.preventDefault();
+            alert('Selecciona un producto primero');
+        }
+    });
+</script>
 
 {% endblock %}

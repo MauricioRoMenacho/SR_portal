@@ -5,22 +5,16 @@ from .view import views, Entregautiles
 
 urlpatterns = [
 
-    # ═════════════════════════════════════════════════════════════════════
     # INICIO / GENERALES
-    # ═════════════════════════════════════════════════════════════════════
     path('', views.inicio, name='inicio'),
     path('perfil/', views.perfil, name='perfil'),
     path('configuracion/', views.configuracion, name='configuracion'),
     path('logout/', views.logout_view, name='logout'),
 
-    # ═════════════════════════════════════════════════════════════════════
     # ALMACENES
-    # ═════════════════════════════════════════════════════════════════════
     path('almacenes/', views.almacenes, name='almacenes'),
 
-    # ═════════════════════════════════════════════════════════════════════
     # INVENTARIO GENERAL
-    # ═════════════════════════════════════════════════════════════════════
     path('almacenes/inventario/', views.InventrioAG, name='InventarioAG'),
     path('almacenes/agregar-producto/', views.agregar_producto, name='agregar_producto'),
     path('almacenes/crear-unidad/', views.crear_unidad, name='crear_unidad'),
@@ -28,16 +22,14 @@ urlpatterns = [
     path('almacenes/descargar-plantilla/', views.descargar_plantilla, name='descargar_plantilla'),
     path('api/ultimo-producto/', views.api_ultimo_producto, name='api_ultimo_producto'),
 
-    # ═════════════════════════════════════════════════════════════════════
     # PEDIDOS DE COMPRA
-    # ═════════════════════════════════════════════════════════════════════
     path('pedidos-compra/', views.PedidosCompra, name='PedidosCompra'),
     path('pedidos-compra/crear/', views.CrearPedidoCompra, name='CrearPedidoCompra'),
     path('pedidos-compra/<int:id_pedido>/', views.DetallePedido, name='DetallePedido'),
     path('pedidos-compra/<int:id_pedido>/editar/', views.EditarPedido, name='EditarPedido'),
     path('pedidos-compra/<int:id_pedido>/eliminar/', views.EliminarPedido, name='EliminarPedido'),
 
-    # ✅ PDF (CORREGIDO: SIN id_pedido)
+    # PDF (CORREGIDO: SIN id_pedido)
     path('pedidos-compra/generar-pdf/', views.GenerarPDFPedido, name='GenerarPDFPedido'),
 
     # Items del pedido
@@ -55,9 +47,7 @@ urlpatterns = [
     # Entrega de pedidos
     path('pedidos-compra/<int:id_pedido>/marcar-entregado/', views.MarcarEntregado, name='MarcarEntregado'),
 
-    # ═════════════════════════════════════════════════════════════════════
-    # ENTREGA DE ÚTILES ESCOLARES
-    # ═════════════════════════════════════════════════════════════════════
+    # ENTREGA DE UTILES ESCOLARES
     path('inventario-utiles/', Entregautiles.inventario_utiles, name='inventario_utiles'),
     path('agregar-producto-utiles/', Entregautiles.agregar_producto_utiles, name='agregar_producto_utiles'),
     path('eliminar-producto-utiles/<int:id_producto>/', Entregautiles.eliminar_producto_utiles, name='eliminar_producto_utiles'),
@@ -69,6 +59,14 @@ urlpatterns = [
     path('entrega-utiles/salones/<int:pk>/editar/', Entregautiles.editar_salon, name='editar_salon'),
     path('entrega-utiles/salones/<int:pk>/eliminar/', Entregautiles.eliminar_salon, name='eliminar_salon'),
     path('entrega-utiles/salones/<int:pk>/importar-excel/', Entregautiles.importar_excel_alumnos, name='importar_excel_alumnos'),
+    
+    # Lista de utiles
+    path('entrega-utiles/salones/<int:salon_id>/lista-utiles/', Entregautiles.lista_utiles, name='lista_utiles'),
+    path('entrega-utiles/utiles/<int:util_id>/eliminar/', Entregautiles.eliminar_util, name='eliminar_util'),
+    
+    # Alumnos
+    path('entrega-utiles/alumnos/<int:alumno_id>/', Entregautiles.detalle_alumno, name='detalle_alumno'),
+    path('entrega-utiles/alumnos/<int:alumno_id>/editar-entregas/', Entregautiles.editar_entregas_alumno, name='editar_entregas_alumno'),
 
     # API
     path('api/salones/<int:salon_id>/alumnos/', Entregautiles.api_alumnos_salon, name='api_alumnos_salon'),
@@ -77,8 +75,6 @@ urlpatterns = [
     path('api/entregas/<int:entrega_id>/toggle/', Entregautiles.api_toggle_entrega_util, name='api_toggle_entrega_util'),
 ]
 
-# ═════════════════════════════════════════════════════════════════════
 # ARCHIVOS MEDIA (DESARROLLO)
-# ═════════════════════════════════════════════════════════════════════
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

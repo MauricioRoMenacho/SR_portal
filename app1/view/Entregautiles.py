@@ -11,12 +11,10 @@ from django.db import models
 from ..models import Salon, Alumno, UtilEscolar, EntregaUtil, HistorialEntrega, ProductoAlmacen, Unidad, MovimientoInventario
 from ..forms import SalonForm, UtilEscolarForm, EntregaUtilForm
 
-# ═════════════════════════════════════════════════════════════════════
-# INVENTARIO DE ÚTILES - USANDO ProductoAlmacen (igual que AG)
-# ═════════════════════════════════════════════════════════════════════
+# INVENTARIO DE UTILES - USANDO ProductoAlmacen (igual que AG)
 
 def inventario_utiles(request):
-    """Vista de inventario del Almacén de Útiles - Filtra por ubicacion_almacen='IU'"""
+    """Vista de inventario del Almacen de Utiles - Filtra por ubicacion_almacen='IU'"""
     productos = ProductoAlmacen.objects.filter(ubicacion_almacen='IU').order_by('-fecha_ingreso')
     context = {
         'productos': productos,
@@ -26,13 +24,13 @@ def inventario_utiles(request):
 
 
 def agregar_producto_utiles(request):
-    """Agregar producto al Almacén de Útiles (IU)"""
+    """Agregar producto al Almacen de Utiles (IU)"""
     if request.method == 'POST':
         try:
             producto = ProductoAlmacen.objects.create(
                 nombre=request.POST.get('nombre'),
                 descripcion=request.POST.get('descripcion'),
-                ubicacion_almacen='IU',  # 🔥 FORZAR que sea IU
+                ubicacion_almacen='IU',
                 estante=request.POST.get('estante'),
                 cantidad=request.POST.get('cantidad'),
                 unidad_id=request.POST.get('unidad'),
@@ -40,7 +38,7 @@ def agregar_producto_utiles(request):
                 observaciones=request.POST.get('observaciones', '')
             )
             
-            messages.success(request, f'Producto "{producto.nombre}" agregado exitosamente al Almacén de Útiles')
+            messages.success(request, f'Producto "{producto.nombre}" agregado exitosamente al Almacen de Utiles')
             return redirect('inventario_utiles')
             
         except Exception as e:
@@ -54,15 +52,15 @@ def agregar_producto_utiles(request):
 
 
 def eliminar_producto_utiles(request, id_producto):
-    """Eliminar producto del Almacén de Útiles"""
+    """Eliminar producto del Almacen de Utiles"""
     producto = get_object_or_404(ProductoAlmacen, id_producto=id_producto, ubicacion_almacen='IU')
     nombre = producto.nombre
     producto.delete()
     messages.success(request, f'Producto "{nombre}" eliminado exitosamente')
     return redirect('inventario_utiles')
-# ═════════════════════════════════════════════════════════════════════
+
+
 # SALONES
-# ═════════════════════════════════════════════════════════════════════
 
 class SalonesList(ListView):
     model = Salon
@@ -103,7 +101,7 @@ def crear_salon(request):
         form = SalonForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Salón creado exitosamente.')
+            messages.success(request, 'Salon creado exitosamente.')
             return redirect('entrega_utiles')
     else:
         form = SalonForm()
@@ -116,7 +114,7 @@ def editar_salon(request, pk):
         form = SalonForm(request.POST, instance=salon)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Salón actualizado exitosamente.')
+            messages.success(request, 'Salon actualizado exitosamente.')
             return redirect('entrega_utiles')
     else:
         form = SalonForm(instance=salon)
@@ -129,7 +127,7 @@ def editar_salon(request, pk):
 def eliminar_salon(request, pk):
     salon = get_object_or_404(Salon, pk=pk)
     salon.delete()
-    messages.success(request, 'Salón eliminado exitosamente.')
+    messages.success(request, 'Salon eliminado exitosamente.')
     return redirect('entrega_utiles')
 
 
@@ -150,7 +148,7 @@ def importar_excel_alumnos(request, pk):
     salon = get_object_or_404(Salon, pk=pk)
 
     if request.method != 'POST' or 'archivo_excel' not in request.FILES:
-        messages.error(request, 'No se envió archivo.')
+        messages.error(request, 'No se envio archivo.')
         return redirect('detalle_salon', pk=salon.pk)
 
     archivo = request.FILES['archivo_excel']
@@ -231,40 +229,81 @@ def importar_excel_alumnos(request, pk):
     return redirect('detalle_salon', pk=salon.pk)
 
 
-# ═════════════════════════════════════════════════════════════════════
-# ÚTILES ESCOLARES
-# ═════════════════════════════════════════════════════════════════════
+# UTILES ESCOLARES
 
 def lista_utiles(request, salon_id):
     salon = get_object_or_404(Salon, pk=salon_id)
     utiles = salon.utiles.all()
     
+    # Obtener productos del Almacen de Utiles
+    productos_inventario = ProductoAlmacen.objects.filter(
+        ubicacion_almacen='IU'
+    ).select_related('unidad').order_by('nombre')
+    
     if request.method == 'POST':
-        form = UtilEscolarForm(request.POST)
-        if form.is_valid():
-            util = form.save(commit=False)
-            util.salon = salon
-            util.orden = salon.utiles.count() + 1
-            util.save()
+        tipo_agregar = request.POST.get('tipo_agregar')
+        
+        if tipo_agregar == 'inventario':
+            # Agregar desde inventario
+            producto_id = request.POST.get('producto_id')
+            cantidad = request.POST.get('cantidad', 1)
             
-            # Crear entregas para todos los alumnos con cantidad_entregada = 0
-            for alumno in salon.alumnos.all():
-                EntregaUtil.objects.create(
-                    alumno=alumno,
-                    util=util,
-                    cantidad_entregada=0,
-                    entregado=False
+            try:
+                producto = ProductoAlmacen.objects.get(id_producto=producto_id, ubicacion_almacen='IU')
+                
+                util = UtilEscolar.objects.create(
+                    salon=salon,
+                    nombre=producto.nombre,
+                    cantidad=int(cantidad),
+                    descripcion=producto.descripcion,
+                    orden=salon.utiles.count() + 1
                 )
-            
-            messages.success(request, f'Útil "{util.nombre}" agregado exitosamente.')
-            return redirect('lista_utiles', salon_id=salon.pk)
+                
+                # Crear entregas para todos los alumnos
+                for alumno in salon.alumnos.all():
+                    EntregaUtil.objects.create(
+                        alumno=alumno,
+                        util=util,
+                        cantidad_entregada=0,
+                        entregado=False
+                    )
+                
+                messages.success(request, f'Util "{util.nombre}" agregado exitosamente desde inventario.')
+                return redirect('lista_utiles', salon_id=salon.pk)
+                
+            except ProductoAlmacen.DoesNotExist:
+                messages.error(request, 'Producto no encontrado en el inventario.')
+            except Exception as e:
+                messages.error(request, f'Error al agregar util: {str(e)}')
+        
+        else:
+            # Agregar personalizado
+            form = UtilEscolarForm(request.POST)
+            if form.is_valid():
+                util = form.save(commit=False)
+                util.salon = salon
+                util.orden = salon.utiles.count() + 1
+                util.save()
+                
+                # Crear entregas para todos los alumnos
+                for alumno in salon.alumnos.all():
+                    EntregaUtil.objects.create(
+                        alumno=alumno,
+                        util=util,
+                        cantidad_entregada=0,
+                        entregado=False
+                    )
+                
+                messages.success(request, f'Util "{util.nombre}" agregado exitosamente.')
+                return redirect('lista_utiles', salon_id=salon.pk)
     else:
         form = UtilEscolarForm()
     
     return render(request, 'almacenes/almutiles/Entrega_Utiles/lista_utiles.html', {
         'salon': salon,
         'utiles': utiles,
-        'form': form
+        'form': form,
+        'productos_inventario': productos_inventario
     })
 
 
@@ -272,13 +311,11 @@ def eliminar_util(request, util_id):
     util = get_object_or_404(UtilEscolar, pk=util_id)
     salon_id = util.salon.pk
     util.delete()
-    messages.success(request, f'Útil "{util.nombre}" eliminado exitosamente.')
+    messages.success(request, f'Util "{util.nombre}" eliminado exitosamente.')
     return redirect('lista_utiles', salon_id=salon_id)
 
 
-# ═════════════════════════════════════════════════════════════════════
 # ENTREGAS DE ALUMNOS
-# ═════════════════════════════════════════════════════════════════════
 
 def detalle_alumno(request, alumno_id):
     alumno = get_object_or_404(Alumno, pk=alumno_id)
@@ -293,7 +330,7 @@ def detalle_alumno(request, alumno_id):
 
 def editar_entregas_alumno(request, alumno_id):
     """
-    🔧 ACTUALIZADA: Ahora maneja cantidades entregadas
+    ACTUALIZADA: Ahora maneja cantidades entregadas
     """
     alumno = get_object_or_404(Alumno, pk=alumno_id)
     entregas = alumno.entregas.all().select_related('util')
@@ -313,11 +350,11 @@ def editar_entregas_alumno(request, alumno_id):
             
             observacion = request.POST.get(obs_name, '').strip()
             
-            # Registrar cambio si hubo modificación
+            # Registrar cambio si hubo modificacion
             if entrega.cantidad_entregada != nueva_cantidad:
                 cantidad_anterior = entrega.cantidad_entregada
                 entrega.cantidad_entregada = nueva_cantidad
-                entrega.save()  # El save() automáticamente actualiza entregado y fecha_entrega
+                entrega.save()  # El save() automaticamente actualiza entregado y fecha_entrega
                 
                 accion = f'{entrega.util.nombre}: {cantidad_anterior} → {nueva_cantidad} de {entrega.util.cantidad}'
                 
@@ -342,9 +379,7 @@ def editar_entregas_alumno(request, alumno_id):
     })
 
 
-# ═════════════════════════════════════════════════════════════════════
 # API ENDPOINTS (AJAX)
-# ═════════════════════════════════════════════════════════════════════
 
 @require_GET
 def api_alumnos_salon(request, salon_id):
@@ -365,7 +400,7 @@ def api_eliminar_alumno(request, alumno_id):
 @require_POST
 def api_toggle_entrega_util(request, entrega_id):
     """
-    🔧 DEPRECADA: Mantener por compatibilidad pero ya no se usa
+    DEPRECADA: Mantener por compatibilidad pero ya no se usa
     """
     entrega = get_object_or_404(EntregaUtil, pk=entrega_id)
     
@@ -387,7 +422,7 @@ def api_toggle_entrega_util(request, entrega_id):
 @require_GET
 def api_estado_alumno(request, alumno_id):
     """
-    🔧 ACTUALIZADA: Retorna progreso en formato X/Y
+    ACTUALIZADA: Retorna progreso en formato X/Y
     """
     alumno = get_object_or_404(Alumno, pk=alumno_id)
     
