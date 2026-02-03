@@ -139,6 +139,29 @@
     .btn-success { background: #06d6a0; color: white; border: 1px solid #05c896; }
     .btn-success:hover { background: #05c896; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(6,214,160,0.3); }
 
+    .btn-import-excel { 
+        background: #06d6a0; 
+        color: white; 
+        border: 1px solid #05c896;
+        padding: 11px 20px; 
+        border-radius: 8px;
+        font-size: 14px; 
+        font-weight: 600; 
+        cursor: pointer;
+        display: inline-flex; 
+        align-items: center; 
+        gap: 8px;
+        transition: all 0.25s; 
+        text-decoration: none; 
+        white-space: nowrap; 
+        font-family: inherit;
+    }
+    .btn-import-excel:hover { 
+        background: #05c896; 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 8px rgba(6,214,160,0.3); 
+    }
+
     /* ==================== MODAL ==================== */
     .modal-overlay {
         display: none;
@@ -435,17 +458,16 @@
             <button class="btn-clear-filters" id="btnClearFilters">
                 <i class="fa-solid fa-filter-circle-xmark"></i> Limpiar
             </button>
-        </div>
-        <div class="toolbar-right">
-            <button class="btn btn-success" id="btnAbrirModal" title="Importar alumnos desde Excel">
+            
+            <!-- Botón Importar Excel -->
+            <button class="btn btn-import-excel" id="btnAbrirModal" title="Importar alumnos desde Excel">
                 <i class="fa-solid fa-file-excel"></i> Importar Excel
             </button>
+        </div>
+        <div class="toolbar-right">
             <a href="{% url 'lista_utiles' salon.pk %}" class="btn btn-warning" title="Gestionar lista de útiles">
                 <i class="fa-solid fa-list-check"></i> Lista de Útiles ({{ total_utiles|default:0 }})
             </a>
-            <button class="btn btn-secondary" id="btnExportar" title="Exportar lista">
-                <i class="fa-solid fa-download"></i> Exportar
-            </button>
         </div>
     </div>
 
@@ -907,13 +929,6 @@
         document.getElementById('stat-parciales').textContent  = totalParciales;
         document.getElementById('stat-pendientes').textContent = totalPendientes;
     }
-
-    // =========================================================================
-    // EXPORTAR
-    // =========================================================================
-    document.getElementById('btnExportar').addEventListener('click', function() {
-        window.location.href = `/salones/{{ salon.pk }}/exportar/`;
-    });
 
     // =========================================================================
     // UTILIDAD: CSRF Token
