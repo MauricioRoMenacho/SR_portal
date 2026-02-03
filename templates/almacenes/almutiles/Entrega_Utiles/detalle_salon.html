@@ -314,7 +314,7 @@
             <select class="filter-select" id="filterUtil">
                 <option value="">Todos los útiles</option>
                 {% for util in utiles %}
-                <option value="{{ util.pk }}">{{ util.nombre }} (x{{ util.cantidad }})</option>
+                <option value="{{ util.pk }}">{{ util.nombre }}</option>
                 {% endfor %}
             </select>
             
