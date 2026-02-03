@@ -14,6 +14,9 @@
       <i class="fa-solid fa-file-excel"></i>
       Importar Productos desde Excel
     </h1>
+    <p style="color: #666; font-size: 14px; margin-top: 8px;">
+      Importa productos para <strong style="color: #148129;">todos los almacenes</strong> en una sola operación
+    </p>
   </div>
 
   <!-- Instrucciones -->
@@ -26,8 +29,9 @@
       <li><strong>Columnas OBLIGATORIAS:</strong> codigo_almacen, codigo_producto, nombre, cantidad, unidad, estado</li>
       <li><strong>Códigos de almacén válidos:</strong> 01 (Almacén General), 02 (Almacén Deporte), 03 (Almacén Útiles)</li>
       <li><strong>Códigos de producto:</strong> Identificador único del producto (ej: PRD-001, PRD-002, etc.)</li>
-      <li><strong>Estados válidos:</strong> DISP, AGOT, BAJO</li>
-      <li><strong>Unidades:</strong> Unidad, Paquete, Caja, Kg, etc.</li>
+      <li><strong>Estados válidos:</strong> DISP (Disponible), AGOT (Agotado), BAJO (Stock Bajo)</li>
+      <li><strong>Unidades:</strong> Unidad, Paquete, Caja, Kg, etc. (se crearán automáticamente si no existen)</li>
+      <li><strong>Importante:</strong> Los productos se crearán en el almacén correspondiente según el código_almacen</li>
     </ul>
   </div>
 
@@ -35,6 +39,9 @@
   <div class="card-formulario">
     <form method="POST" enctype="multipart/form-data" id="formImportar">
       {% csrf_token %}
+      
+      <!-- 🔥 Campo oculto para redirigir correctamente -->
+      <input type="hidden" name="redirect_to" value="{{ redirect_to }}">
       
       <div class="file-upload-area">
         <label>
@@ -70,7 +77,7 @@
           Confirmar Importación
         </button>
         
-        <a href="{% url 'InventarioAG' %}" class="btn-secondary">
+        <a href="{% url redirect_to %}" class="btn-secondary">
           <i class="fa-solid fa-arrow-left"></i>
           Cancelar
         </a>
@@ -86,22 +93,51 @@
         Vista Previa de Datos
       </h3>
     </div>
+    
+    <!-- Resumen por almacén -->
+    <div class="preview-summary" id="previewSummary" style="display: none;">
+      <div class="summary-cards">
+        <div class="summary-card" id="summaryAG">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <div>
+            <span class="summary-label">Almacén General</span>
+            <span class="summary-value" id="countAG">0</span>
+          </div>
+        </div>
+        <div class="summary-card" id="summaryAD">
+          <i class="fa-solid fa-basketball"></i>
+          <div>
+            <span class="summary-label">Almacén Deporte</span>
+            <span class="summary-value" id="countAD">0</span>
+          </div>
+        </div>
+        <div class="summary-card" id="summaryIU">
+          <i class="fa-solid fa-book"></i>
+          <div>
+            <span class="summary-label">Almacén Útiles</span>
+            <span class="summary-value" id="countIU">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="preview-info">
       <i class="fa-solid fa-circle-check"></i>
       Se encontraron <strong><span id="totalRegistros">0</span> registros</strong> para importar
     </div>
+    
     <div class="tabla-preview-container">
       <table class="tabla-preview">
         <thead>
           <tr>
-            <th>Código</th>
+            <th>Código Almacén</th>
+            <th>Código Producto</th>
             <th>Nombre</th>
             <th>Descripción</th>
             <th>Cantidad</th>
             <th>Unidad</th>
-            <th>Ubicación</th>
             <th>Estado</th>
-            <th>Fecha Ingreso</th>
+            <th>Estante</th>
           </tr>
         </thead>
         <tbody id="previewTableBody">
@@ -129,6 +165,97 @@
   </div>
 </div>
 
+<style>
+/* Estilos adicionales para el resumen */
+.preview-summary {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.summary-card {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-left: 4px solid #148129;
+}
+
+.summary-card i {
+  font-size: 28px;
+  color: #148129;
+}
+
+.summary-card div {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #148129;
+}
+
+/* Badges de ubicación */
+.badge-preview {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-01 {
+  background: #d1f4e0;
+  color: #0d6832;
+}
+
+.badge-02 {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.badge-03 {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.badge-disp {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-bajo {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-agot {
+  background: #fee2e2;
+  color: #991b1b;
+}
+</style>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const archivoInput = document.getElementById('archivoExcel');
@@ -140,6 +267,7 @@ const previewContainer = document.getElementById('previewContainer');
 const previewTableBody = document.getElementById('previewTableBody');
 const totalRegistros = document.getElementById('totalRegistros');
 const loadingOverlay = document.getElementById('loadingOverlay');
+const previewSummary = document.getElementById('previewSummary');
 
 let datosExcel = [];
 
@@ -224,27 +352,43 @@ function mostrarPreview(datos) {
     'AGOT': 'Agotado'
   };
   
-  const fechaHoy = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  // Contar productos por almacén
+  let countAG = 0, countAD = 0, countIU = 0;
   
-  datos.forEach((row, index) => {
+  datos.forEach((row) => {
     const codigoAlmacen = String(row.codigo_almacen || '').padStart(2, '0');
     const codigoProducto = row.codigo_producto || '';
     const estado = (row.estado || 'DISP').toUpperCase();
     const descripcion = row.descripcion || '-';
+    const estante = row.estante || '-';
+    
+    // Contar por almacén
+    if (codigoAlmacen === '01') countAG++;
+    else if (codigoAlmacen === '02') countAD++;
+    else if (codigoAlmacen === '03') countIU++;
     
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${codigoAlmacen}-${codigoProducto}</strong></td>
-      <td>${row.nombre || ''}</td>
-      <td style="color: #666;">${descripcion}</td>
-      <td><strong>${row.cantidad || 0}</strong></td>
-      <td>${row.unidad || ''}</td>
       <td><span class="badge-preview badge-${codigoAlmacen}">${ubicacionesLabels[codigoAlmacen] || 'Desconocido'}</span></td>
+      <td><strong style="font-family: monospace; color: #148129;">${codigoProducto}</strong></td>
+      <td><strong>${row.nombre || ''}</strong></td>
+      <td style="color: #666; font-size: 13px;">${descripcion}</td>
+      <td style="text-align: center;"><strong>${row.cantidad || 0}</strong></td>
+      <td>${row.unidad || ''}</td>
       <td><span class="badge-preview badge-${estado.toLowerCase()}">${estadosLabels[estado] || estado}</span></td>
-      <td>${fechaHoy}</td>
+      <td style="color: #666;">${estante}</td>
     `;
     previewTableBody.appendChild(tr);
   });
+  
+  // Mostrar resumen
+  document.getElementById('countAG').textContent = countAG;
+  document.getElementById('countAD').textContent = countAD;
+  document.getElementById('countIU').textContent = countIU;
+  
+  if (countAG > 0 || countAD > 0 || countIU > 0) {
+    previewSummary.style.display = 'block';
+  }
 }
 
 // Loading al enviar

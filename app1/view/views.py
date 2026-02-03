@@ -172,7 +172,7 @@ def crear_unidad(request):
 # ==============================================================================
 
 def importar_excel(request):
-    """Importar productos desde archivo Excel"""
+    """Importar productos desde archivo Excel - TODOS LOS ALMACENES"""
     if request.method == 'POST' and request.FILES.get('archivo_excel'):
         try:
             archivo = request.FILES['archivo_excel']
@@ -198,6 +198,13 @@ def importar_excel(request):
                 '01': 'AG',
                 '02': 'AD',
                 '03': 'IU',
+            }
+            
+            # Contadores por almacén
+            stats_por_almacen = {
+                'AG': {'creados': 0, 'actualizados': 0},
+                'AD': {'creados': 0, 'actualizados': 0},
+                'IU': {'creados': 0, 'actualizados': 0},
             }
             
             for index, row in df.iterrows():
@@ -234,7 +241,7 @@ def importar_excel(request):
                     
                     # PROCESAR UNIDAD DE MEDIDA
                     unidad_str = str(row['unidad']).strip()
-                    if not unidad_str or unidad_str == 'NAN':
+                    if not unidad_str or unidad_str.upper() == 'NAN':
                         errores.append(f"Fila {index+2}: La unidad es obligatoria")
                         continue
                     
@@ -315,14 +322,15 @@ def importar_excel(request):
                         )
                         
                         productos_actualizados += 1
+                        stats_por_almacen[ubicacion]['actualizados'] += 1
                         
                     else:
-                        # CREAR nuevo producto
+                        # CREAR nuevo producto CON LA UBICACIÓN CORRECTA
                         nuevo_producto = ProductoAlmacen.objects.create(
                             codigo_producto=codigo_producto,
                             nombre=nombre,
                             descripcion=descripcion,
-                            ubicacion_almacen=ubicacion,
+                            ubicacion_almacen=ubicacion,  # 🔥 ASIGNA LA UBICACIÓN CORRECTA
                             estante=estante if estante else None,
                             cantidad=cantidad,
                             unidad=unidad_obj,
@@ -344,16 +352,32 @@ def importar_excel(request):
                         )
                         
                         productos_creados += 1
+                        stats_por_almacen[ubicacion]['creados'] += 1
                     
                 except Exception as e:
                     errores.append(f"Fila {index+2}: {str(e)}")
             
-            # Mensajes de resultado
+            # Mensajes de resultado DETALLADOS
             if productos_creados > 0:
-                messages.success(request, f'✅ Se crearon {productos_creados} productos nuevos')
+                messages.success(request, f'✅ Se crearon {productos_creados} productos nuevos en total')
+                
+                # Desglose por almacén
+                if stats_por_almacen['AG']['creados'] > 0:
+                    messages.info(request, f"📦 Almacén General: {stats_por_almacen['AG']['creados']} productos creados")
+                if stats_por_almacen['AD']['creados'] > 0:
+                    messages.info(request, f"⚽ Almacén de Deporte: {stats_por_almacen['AD']['creados']} productos creados")
+                if stats_por_almacen['IU']['creados'] > 0:
+                    messages.info(request, f"📚 Almacén de Útiles: {stats_por_almacen['IU']['creados']} productos creados")
             
             if productos_actualizados > 0:
                 messages.success(request, f'✅ Se actualizaron {productos_actualizados} productos existentes')
+                
+                if stats_por_almacen['AG']['actualizados'] > 0:
+                    messages.info(request, f"📦 Almacén General: {stats_por_almacen['AG']['actualizados']} productos actualizados")
+                if stats_por_almacen['AD']['actualizados'] > 0:
+                    messages.info(request, f"⚽ Almacén de Deporte: {stats_por_almacen['AD']['actualizados']} productos actualizados")
+                if stats_por_almacen['IU']['actualizados'] > 0:
+                    messages.info(request, f"📚 Almacén de Útiles: {stats_por_almacen['IU']['actualizados']} productos actualizados")
             
             if unidades_creadas > 0:
                 messages.info(request, f'ℹ️ Se crearon {unidades_creadas} nuevas unidades de medida')
@@ -363,8 +387,11 @@ def importar_excel(request):
                 for error in errores[:10]:
                     messages.error(request, error)
             
+            # Redirigir según el parámetro 'redirect_to'
+            redirect_url = request.POST.get('redirect_to', 'InventarioAG')
+            
             if productos_creados > 0 or productos_actualizados > 0:
-                return redirect('InventarioAG')
+                return redirect(redirect_url)
             else:
                 return redirect('importar_excel')
             
@@ -375,10 +402,13 @@ def importar_excel(request):
     # GET: Mostrar formulario con unidades disponibles
     unidades_disponibles = Unidad.objects.filter(activo=True).order_by('nombre')
     
+    # Obtener desde dónde se llamó para redirigir correctamente
+    redirect_to = request.GET.get('redirect_to', 'InventarioAG')
+    
     return render(request, 'almacenes/importar_excel.html', {
-        'unidades_disponibles': unidades_disponibles
+        'unidades_disponibles': unidades_disponibles,
+        'redirect_to': redirect_to
     })
-
 
 def descargar_plantilla(request):
     """Descargar plantilla Excel para importación de productos"""
