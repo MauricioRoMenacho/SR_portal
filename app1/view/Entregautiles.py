@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView
 from django.views.decorators.http import require_GET, require_POST
@@ -136,9 +137,24 @@ def detalle_salon(request, pk):
     alumnos = salon.alumnos.all().order_by('nombre')
     utiles = salon.utiles.all()
     
+    # Preparar datos de entregas para cada alumno (para filtros JS)
+    alumnos_con_entregas = []
+    for alumno in alumnos:
+        entregas_data = []
+        for entrega in alumno.entregas.all().select_related('util'):
+            entregas_data.append({
+                'util_id': entrega.util.pk,
+                'util_nombre': entrega.util.nombre,
+                'cantidad_entregada': entrega.cantidad_entregada,
+                'cantidad_total': entrega.util.cantidad
+            })
+        
+        alumno.entregas_json = json.dumps(entregas_data)
+        alumnos_con_entregas.append(alumno)
+    
     return render(request, 'almacenes/almutiles/Entrega_Utiles/detalle_salon.html', {
         'salon': salon,
-        'alumnos': alumnos,
+        'alumnos': alumnos_con_entregas,
         'utiles': utiles,
         'total_utiles': utiles.count()
     })
@@ -244,7 +260,6 @@ def lista_utiles(request, salon_id):
         tipo_agregar = request.POST.get('tipo_agregar')
         
         if tipo_agregar == 'inventario':
-            # Agregar desde inventario
             producto_id = request.POST.get('producto_id')
             cantidad = request.POST.get('cantidad', 1)
             
@@ -329,9 +344,6 @@ def detalle_alumno(request, alumno_id):
 
 
 def editar_entregas_alumno(request, alumno_id):
-    """
-    ACTUALIZADA: Ahora maneja cantidades entregadas
-    """
     alumno = get_object_or_404(Alumno, pk=alumno_id)
     entregas = alumno.entregas.all().select_related('util')
     
@@ -340,10 +352,8 @@ def editar_entregas_alumno(request, alumno_id):
             cantidad_field = f'cantidad_{entrega.pk}'
             obs_name = f'obs_{entrega.pk}'
             
-            # Obtener cantidad entregada del formulario
             try:
                 nueva_cantidad = int(request.POST.get(cantidad_field, 0))
-                # Validar que no sea negativa
                 nueva_cantidad = max(0, nueva_cantidad)
             except (ValueError, TypeError):
                 nueva_cantidad = 0
@@ -354,7 +364,7 @@ def editar_entregas_alumno(request, alumno_id):
             if entrega.cantidad_entregada != nueva_cantidad:
                 cantidad_anterior = entrega.cantidad_entregada
                 entrega.cantidad_entregada = nueva_cantidad
-                entrega.save()  # El save() automaticamente actualiza entregado y fecha_entrega
+                entrega.save()
                 
                 accion = f'{entrega.util.nombre}: {cantidad_anterior} → {nueva_cantidad} de {entrega.util.cantidad}'
                 
@@ -400,7 +410,7 @@ def api_eliminar_alumno(request, alumno_id):
 @require_POST
 def api_toggle_entrega_util(request, entrega_id):
     """
-    DEPRECADA: Mantener por compatibilidad pero ya no se usa
+    DEPRECADA: Mantener por compatibilidad pero ya no se usa activamente
     """
     entrega = get_object_or_404(EntregaUtil, pk=entrega_id)
     
@@ -422,14 +432,23 @@ def api_toggle_entrega_util(request, entrega_id):
 @require_GET
 def api_estado_alumno(request, alumno_id):
     """
-    ACTUALIZADA: Retorna progreso en formato X/Y
+    Retorna estado y progreso como X/Y (suma de cantidades) + entregas JSON
     """
     alumno = get_object_or_404(Alumno, pk=alumno_id)
+    
+    entregas_data = []
+    for entrega in alumno.entregas.all().select_related('util'):
+        entregas_data.append({
+            'util_id': entrega.util.pk,
+            'util_nombre': entrega.util.nombre,
+            'cantidad_entregada': entrega.cantidad_entregada,
+            'cantidad_total': entrega.util.cantidad
+        })
     
     return JsonResponse({
         'ok': True,
         'alumno_id': alumno.pk,
         'estado': alumno.estado_entrega,
         'progreso': alumno.progreso_entrega,
-        'porcentaje': alumno.porcentaje_entrega,
+        'entregas_json': json.dumps(entregas_data)
     })

@@ -126,12 +126,11 @@ class PedidoCompra(models.Model):
     id_pedido = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=200)
     descripcion = models.TextField(blank=True, null=True)
-    archivo = models.FileField(upload_to='pedidos_compra/', null=True, blank=True)  # Ahora opcional
+    archivo = models.FileField(upload_to='pedidos_compra/', null=True, blank=True)
     estado = models.CharField(max_length=4, choices=ESTADO_CHOICES, default='PEND')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
     
-    # Documento de entrega (cuando estado = ENTR)
     documento_entrega = models.FileField(upload_to='documentos_entrega/', null=True, blank=True)
     fecha_entrega = models.DateTimeField(null=True, blank=True)
     
@@ -148,7 +147,6 @@ class PedidoCompra(models.Model):
         return self.items.count()
     
     def total_general(self):
-        """Calcula el total general del pedido basado en los items"""
         total = 0
         for item in self.items.all():
             total += item.subtotal()
@@ -162,7 +160,6 @@ class PedidoCompra(models.Model):
 
 
 class ItemPedido(models.Model):
-    """Items/Productos dentro de un pedido de compra"""
     id_item = models.AutoField(primary_key=True)
     pedido = models.ForeignKey(PedidoCompra, on_delete=models.CASCADE, related_name='items')
     producto = models.ForeignKey(ProductoAlmacen, on_delete=models.PROTECT, related_name='items_pedido')
@@ -252,7 +249,6 @@ class Salon(models.Model):
 
     @property
     def total_entregados(self):
-        """Cuenta alumnos con estado 'completo'"""
         completos = 0
         for alumno in self.alumnos.all():
             if alumno.estado_entrega == 'completo':
@@ -261,7 +257,6 @@ class Salon(models.Model):
 
     @property
     def total_parciales(self):
-        """Cuenta alumnos con estado 'parcial'"""
         parciales = 0
         for alumno in self.alumnos.all():
             if alumno.estado_entrega == 'parcial':
@@ -270,7 +265,6 @@ class Salon(models.Model):
 
     @property
     def total_pendientes(self):
-        """Cuenta alumnos con estado 'no_entrego'"""
         pendientes = 0
         for alumno in self.alumnos.all():
             if alumno.estado_entrega == 'no_entrego':
@@ -309,60 +303,50 @@ class Alumno(models.Model):
     def estado_entrega(self):
         """
         Estados posibles:
-        - sin_pedido / sin_lista: No tiene útiles asignados
-        - no_entrego: Tiene útiles pero no ha entregado ninguno
-        - parcial: Ha entregado algunos útiles (completos o parciales)
-        - completo: Ha entregado todos los útiles en su cantidad total
+        - sin_lista: No tiene útiles asignados
+        - no_entrego: Tiene útiles pero cantidad_entregada total es 0
+        - parcial: Tiene algo entregado pero no todo
+        - completo: Todas las cantidades entregadas igualan a las pedidas
         """
-        entregas = self.entregas.all()
-        total_entregas = entregas.count()
+        entregas = self.entregas.all().select_related('util')
         
-        if total_entregas == 0:
-            return 'sin_pedido'
+        if not entregas.exists():
+            return 'sin_lista'
 
-        # 🔧 NUEVO: Contar entregas completas (cantidad_entregada >= cantidad_pedida)
-        entregas_completas = 0
-        tiene_alguna_entrega = False
-        
+        total_pedido = 0
+        total_entregado = 0
+
         for entrega in entregas:
-            if entrega.cantidad_entregada > 0:
-                tiene_alguna_entrega = True
-            if entrega.cantidad_entregada >= entrega.util.cantidad:
-                entregas_completas += 1
+            total_pedido += entrega.util.cantidad
+            total_entregado += entrega.cantidad_entregada
 
-        if not tiene_alguna_entrega:
+        if total_entregado == 0:
             return 'no_entrego'
-        elif entregas_completas < total_entregas:
+        elif total_entregado < total_pedido:
             return 'parcial'
         return 'completo'
 
     @property
     def progreso_entrega(self):
         """
-        🔧 NUEVO: Retorna progreso en formato 'X/Y' donde:
-        X = número de útiles entregados completamente
-        Y = total de útiles asignados
+        Retorna progreso como 'X/Y' donde:
+        X = suma de todas las cantidades entregadas
+        Y = suma de todas las cantidades pedidas
+        Ejemplo: 3 hojas (cantidad 3) + 3 lápices (cantidad 3) → 0/6 al inicio
         """
-        entregas = self.entregas.all()
-        total = entregas.count()
-        
-        if total == 0:
-            return '0/0'
-        
-        completos = sum(1 for e in entregas if e.cantidad_entregada >= e.util.cantidad)
-        return f'{completos}/{total}'
+        entregas = self.entregas.all().select_related('util')
 
-    @property
-    def porcentaje_entrega(self):
-        """Porcentaje de útiles entregados completamente"""
-        entregas = self.entregas.all()
-        total = entregas.count()
-        
-        if total == 0:
-            return 0
-        
-        completos = sum(1 for e in entregas if e.cantidad_entregada >= e.util.cantidad)
-        return round((completos / total) * 100)
+        if not entregas.exists():
+            return '0/0'
+
+        total_pedido = 0
+        total_entregado = 0
+
+        for entrega in entregas:
+            total_pedido += entrega.util.cantidad
+            total_entregado += entrega.cantidad_entregada
+
+        return f'{total_entregado}/{total_pedido}'
 
 
 class UtilEscolar(models.Model):
@@ -398,10 +382,9 @@ class EntregaUtil(models.Model):
         related_name='entregas'
     )
     
-    # 🔧 NUEVO: Campo para cantidad entregada
     cantidad_entregada = models.IntegerField(default=0)
     
-    # 🔧 DEPRECADO: Mantener por compatibilidad pero ya no se usa
+    # DEPRECADO: se mantiene por compatibilidad, se actualiza en save()
     entregado = models.BooleanField(default=False)
     
     fecha_entrega = models.DateTimeField(blank=True, null=True)
@@ -420,21 +403,11 @@ class EntregaUtil(models.Model):
 
     @property
     def esta_completo(self):
-        """Verifica si la entrega está completa"""
         return self.cantidad_entregada >= self.util.cantidad
 
-    @property
-    def porcentaje_individual(self):
-        """Porcentaje de este útil específico"""
-        if self.util.cantidad == 0:
-            return 0
-        return round((self.cantidad_entregada / self.util.cantidad) * 100)
-
     def save(self, *args, **kwargs):
-        # Auto-actualizar el campo 'entregado' basado en cantidad_entregada
         self.entregado = self.cantidad_entregada >= self.util.cantidad
         
-        # Actualizar fecha_entrega
         if self.cantidad_entregada > 0 and not self.fecha_entrega:
             self.fecha_entrega = timezone.now()
         elif self.cantidad_entregada == 0:
