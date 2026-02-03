@@ -36,7 +36,9 @@ urlpatterns = [
     path('pedidos-compra/<int:id_pedido>/', views.DetallePedido, name='DetallePedido'),
     path('pedidos-compra/<int:id_pedido>/editar/', views.EditarPedido, name='EditarPedido'),
     path('pedidos-compra/<int:id_pedido>/eliminar/', views.EliminarPedido, name='EliminarPedido'),
-    path('pedidos-compra/<int:id_pedido>/generar-pdf/', views.GenerarPDFPedido, name='GenerarPDFPedido'),
+
+    # ✅ PDF (CORREGIDO: SIN id_pedido)
+    path('pedidos-compra/generar-pdf/', views.GenerarPDFPedido, name='GenerarPDFPedido'),
 
     # Items del pedido
     path('pedidos-compra/<int:id_pedido>/items/agregar/', views.AgregarItemPedido, name='AgregarItemPedido'),
@@ -54,7 +56,7 @@ urlpatterns = [
     path('pedidos-compra/<int:id_pedido>/marcar-entregado/', views.MarcarEntregado, name='MarcarEntregado'),
 
     # ═════════════════════════════════════════════════════════════════════
-    # ENTREGA DE ÚTILES ESCOLARES - PRINCIPAL
+    # ENTREGA DE ÚTILES ESCOLARES
     # ═════════════════════════════════════════════════════════════════════
     path('inventario-utiles/', Entregautiles.inventario_utiles, name='inventario_utiles'),
     path('agregar-producto-utiles/', Entregautiles.agregar_producto_utiles, name='agregar_producto_utiles'),
@@ -62,30 +64,14 @@ urlpatterns = [
     path('importar-excel-utiles/', Entregautiles.importar_excel_utiles, name='importar_excel_utiles'),
     path('entrega-utiles/', Entregautiles.SalonesList.as_view(), name='entrega_utiles'),
 
-    # ═════════════════════════════════════════════════════════════════════
-    # SALONES - CRUD
-    # ═════════════════════════════════════════════════════════════════════
+    # Salones
     path('entrega-utiles/salones/crear/', Entregautiles.crear_salon, name='crear_salon'),
     path('entrega-utiles/salones/<int:pk>/', Entregautiles.detalle_salon, name='detalle_salon'),
     path('entrega-utiles/salones/<int:pk>/editar/', Entregautiles.editar_salon, name='editar_salon'),
     path('entrega-utiles/salones/<int:pk>/eliminar/', Entregautiles.eliminar_salon, name='eliminar_salon'),
     path('entrega-utiles/salones/<int:pk>/importar-excel/', Entregautiles.importar_excel_alumnos, name='importar_excel_alumnos'),
 
-    # ═════════════════════════════════════════════════════════════════════
-    # GESTIÓN DE ÚTILES ESCOLARES
-    # ═════════════════════════════════════════════════════════════════════
-    path('entrega-utiles/salones/<int:salon_id>/utiles/', Entregautiles.lista_utiles, name='lista_utiles'),
-    path('entrega-utiles/utiles/<int:util_id>/eliminar/', Entregautiles.eliminar_util, name='eliminar_util'),
-
-    # ═════════════════════════════════════════════════════════════════════
-    # GESTIÓN DE ENTREGAS POR ALUMNO
-    # ═════════════════════════════════════════════════════════════════════
-    path('entrega-utiles/alumnos/<int:alumno_id>/', Entregautiles.detalle_alumno, name='detalle_alumno'),
-    path('entrega-utiles/alumnos/<int:alumno_id>/editar-entregas/', Entregautiles.editar_entregas_alumno, name='editar_entregas_alumno'),
-
-    # ═════════════════════════════════════════════════════════════════════
-    # API ENDPOINTS - ENTREGA DE ÚTILES
-    # ═════════════════════════════════════════════════════════════════════
+    # API
     path('api/salones/<int:salon_id>/alumnos/', Entregautiles.api_alumnos_salon, name='api_alumnos_salon'),
     path('api/alumnos/<int:alumno_id>/eliminar/', Entregautiles.api_eliminar_alumno, name='api_eliminar_alumno'),
     path('api/alumnos/<int:alumno_id>/estado/', Entregautiles.api_estado_alumno, name='api_estado_alumno'),
