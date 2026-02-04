@@ -57,17 +57,72 @@
     .stat-label { font-size: 12px; color: #666; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
     .stat-value { font-size: 28px; font-weight: 700; color: #333; line-height: 1; }
 
+    /* ==================== BOTONES DE ACCIÓN (JUSTO DEBAJO DE STATS) ==================== */
+    .action-buttons-container {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .btn-import-excel {
+        background: #148129;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+        text-decoration: none;
+        white-space: nowrap;
+        font-family: inherit;
+        box-shadow: 0 2px 6px rgba(20, 129, 41, 0.3);
+    }
+    .btn-import-excel:hover {
+        background: #106020;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(20, 129, 41, 0.4);
+    }
+
+    .btn-lista-utiles {
+        background: #ffd23f;
+        color: #333;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+        text-decoration: none;
+        white-space: nowrap;
+        font-family: inherit;
+    }
+    .btn-lista-utiles:hover {
+        background: #ffc107;
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(255,193,7,0.3);
+    }
+
     /* ==================== TOOLBAR ==================== */
     .toolbar {
         background: white; padding: 16px 20px; border-radius: 12px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         margin-bottom: 20px;
         display: flex; flex-wrap: wrap; gap: 12px;
-        align-items: center; justify-content: space-between;
+        align-items: center;
     }
 
     .toolbar-left { display: flex; gap: 12px; flex: 1; flex-wrap: wrap; align-items: center; }
-    .toolbar-right { display: flex; gap: 10px; }
 
     .search-wrapper { position: relative; flex: 1; min-width: 240px; max-width: 360px; }
     .search-wrapper i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #999; }
@@ -95,9 +150,6 @@
         outline: none;
         border-color: #148129;
         box-shadow: 0 0 0 3px rgba(20,129,41,0.1);
-    }
-    .filter-select option {
-        padding: 8px;
     }
 
     .btn-clear-filters {
@@ -128,39 +180,9 @@
     }
     .btn-primary { background: #148129; color: white; box-shadow: 0 2px 4px rgba(20,129,41,0.2); }
     .btn-primary:hover { background: #106020; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(20,129,41,0.3); }
-    .btn-primary:active { transform: translateY(0); }
 
     .btn-secondary { background: white; color: #333; border: 1px solid #ddd; }
     .btn-secondary:hover { background: #f1f8f4; border-color: #148129; color: #148129; }
-
-    .btn-warning { background: #ffd23f; color: #333; border: 1px solid #ffc107; }
-    .btn-warning:hover { background: #ffc107; color: #fff; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(255,193,7,0.3); }
-
-    .btn-success { background: #06d6a0; color: white; border: 1px solid #05c896; }
-    .btn-success:hover { background: #05c896; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(6,214,160,0.3); }
-
-    .btn-import-excel { 
-        background: #06d6a0; 
-        color: white; 
-        border: 1px solid #05c896;
-        padding: 11px 20px; 
-        border-radius: 8px;
-        font-size: 14px; 
-        font-weight: 600; 
-        cursor: pointer;
-        display: inline-flex; 
-        align-items: center; 
-        gap: 8px;
-        transition: all 0.25s; 
-        text-decoration: none; 
-        white-space: nowrap; 
-        font-family: inherit;
-    }
-    .btn-import-excel:hover { 
-        background: #05c896; 
-        transform: translateY(-2px); 
-        box-shadow: 0 4px 8px rgba(6,214,160,0.3); 
-    }
 
     /* ==================== MODAL ==================== */
     .modal-overlay {
@@ -243,7 +265,7 @@
         justify-content: flex-end;
     }
 
-    /* ==================== UPLOAD AREA (dentro del modal) ==================== */
+    /* ==================== UPLOAD AREA ==================== */
     .upload-area {
         border: 2px dashed #ddd; border-radius: 12px;
         padding: 40px 20px; text-align: center;
@@ -307,7 +329,6 @@
     .data-table tbody tr:hover { background: #f1f8f4; }
     .data-table td { padding: 14px 18px; font-size: 14px; color: #333; }
 
-    /* Celdas especificas */
     .alumno-cell { display: flex; align-items: center; gap: 12px; }
     .alumno-avatar {
         width: 40px; height: 40px; border-radius: 50%;
@@ -373,6 +394,8 @@
     /* ==================== RESPONSIVE ==================== */
     @media (max-width: 768px) {
         .almacenes-container { padding: 15px; }
+        .action-buttons-container { flex-direction: column; }
+        .btn-import-excel, .btn-lista-utiles { width: 100%; justify-content: center; }
         .toolbar { flex-direction: column; align-items: stretch; }
         .toolbar-left { flex-direction: column; }
         .search-wrapper { max-width: 100%; }
@@ -429,7 +452,19 @@
         </div>
     </div>
 
-    <!-- TOOLBAR -->
+    <!-- ============================================ -->
+    <!-- BOTONES DE ACCIÓN - JUSTO DEBAJO DE STATS -->
+    <!-- ============================================ -->
+    <div class="action-buttons-container">
+        <button class="btn-import-excel" id="btnAbrirModal" title="Importar alumnos desde Excel">
+            <i class="fa-solid fa-file-excel"></i> Importar Excel
+        </button>
+        <a href="{% url 'lista_utiles' salon.pk %}" class="btn-lista-utiles" title="Gestionar lista de útiles">
+            <i class="fa-solid fa-list-check"></i> Lista de Útiles ({{ total_utiles|default:0 }})
+        </a>
+    </div>
+
+    <!-- TOOLBAR CON FILTROS -->
     <div class="toolbar">
         <div class="toolbar-left">
             <div class="search-wrapper">
@@ -437,7 +472,6 @@
                 <input type="text" class="search-input" placeholder="Buscar alumno por nombre o DNI..." id="searchInput">
             </div>
             
-            <!-- Filtro por Útil -->
             <select class="filter-select" id="filterUtil">
                 <option value="">Todos los útiles</option>
                 {% for util in utiles %}
@@ -445,7 +479,6 @@
                 {% endfor %}
             </select>
             
-            <!-- Filtro por Estado -->
             <select class="filter-select" id="filterEstado">
                 <option value="">Todos los estados</option>
                 <option value="completo">Completo</option>
@@ -454,20 +487,9 @@
                 <option value="sin_lista">Sin lista</option>
             </select>
             
-            <!-- Botón limpiar filtros -->
             <button class="btn-clear-filters" id="btnClearFilters">
                 <i class="fa-solid fa-filter-circle-xmark"></i> Limpiar
             </button>
-            
-            <!-- Botón Importar Excel -->
-            <button class="btn btn-import-excel" id="btnAbrirModal" title="Importar alumnos desde Excel">
-                <i class="fa-solid fa-file-excel"></i> Importar Excel
-            </button>
-        </div>
-        <div class="toolbar-right">
-            <a href="{% url 'lista_utiles' salon.pk %}" class="btn btn-warning" title="Gestionar lista de útiles">
-                <i class="fa-solid fa-list-check"></i> Lista de Útiles ({{ total_utiles|default:0 }})
-            </a>
         </div>
     </div>
 
@@ -585,7 +607,6 @@
             <form method="post" action="{% url 'importar_excel_alumnos' salon.pk %}" enctype="multipart/form-data" id="uploadForm">
                 {% csrf_token %}
                 
-                <!-- Área de carga -->
                 <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
                     <input type="file" name="archivo_excel" id="fileInput" accept=".xlsx,.xls" class="file-input-hidden">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -594,7 +615,6 @@
                     <p style="font-size: 12px; color: #bbb; margin-top: 10px;">Solo archivos .xlsx o .xls</p>
                 </div>
 
-                <!-- Vista previa del archivo seleccionado -->
                 <div class="file-selected" id="fileSelected">
                     <i class="fa-solid fa-file-excel"></i>
                     <div class="file-info">
@@ -628,7 +648,7 @@
 
 <script>
     // =========================================================================
-    // MODAL - ABRIR / CERRAR
+    // MODAL
     // =========================================================================
     const modalImportar = document.getElementById('modalImportar');
     const btnAbrirModal = document.getElementById('btnAbrirModal');
@@ -643,7 +663,6 @@
     btnCerrarModal.addEventListener('click', () => modalImportar.classList.remove('active'));
     btnCancelar.addEventListener('click', () => modalImportar.classList.remove('active'));
 
-    // Cerrar al hacer clic fuera del modal
     modalImportar.addEventListener('click', (e) => {
         if (e.target === modalImportar) {
             modalImportar.classList.remove('active');
@@ -651,7 +670,7 @@
     });
 
     // =========================================================================
-    // MANEJO DE ARCHIVOS
+    // ARCHIVOS
     // =========================================================================
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
@@ -662,28 +681,21 @@
     const btnConfirmar = document.getElementById('btnConfirmar');
     const uploadForm = document.getElementById('uploadForm');
 
-    // Al seleccionar archivo
     fileInput.addEventListener('change', function() {
         const file = this.files[0];
-        if (file) {
-            mostrarArchivoSeleccionado(file);
-        }
+        if (file) mostrarArchivoSeleccionado(file);
     });
 
-    // Drag & Drop
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadArea.classList.add('dragover');
     });
 
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
-    });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
 
     uploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadArea.classList.remove('dragover');
-        
         const file = e.dataTransfer.files[0];
         if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
             const dt = new DataTransfer();
@@ -701,10 +713,7 @@
         btnConfirmar.disabled = false;
     }
 
-    // Quitar archivo
-    btnRemoveFile.addEventListener('click', () => {
-        resetearModal();
-    });
+    btnRemoveFile.addEventListener('click', () => resetearModal());
 
     function resetearModal() {
         fileInput.value = '';
@@ -713,14 +722,10 @@
         btnConfirmar.disabled = true;
     }
 
-    // Confirmar importación
     btnConfirmar.addEventListener('click', () => {
-        if (fileInput.files.length > 0) {
-            uploadForm.submit();
-        }
+        if (fileInput.files.length > 0) uploadForm.submit();
     });
 
-    // Formatear tamaño de archivo
     function formatearTamano(bytes) {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -745,7 +750,7 @@
     });
 
     // =========================================================================
-    // ACTUALIZAR ALUMNO VIA AJAX (después de editar entregas)
+    // ACTUALIZAR ALUMNO
     // =========================================================================
     async function actualizarDatosAlumno(alumnoId) {
         try {
@@ -753,13 +758,11 @@
             const data = await response.json();
             
             if (data.ok) {
-                // Actualizar badge visual
                 const statusContainer = document.getElementById(`status-container-${alumnoId}`);
                 if (statusContainer) {
                     statusContainer.innerHTML = generarBadgeEstado(data.estado, data.progreso);
                 }
                 
-                // Actualizar data attributes para que los filtros funcionen
                 const row = document.getElementById(`row-${alumnoId}`);
                 if (row) {
                     row.setAttribute('data-estado', data.estado);
@@ -771,16 +774,12 @@
                 actualizarEstadisticas();
             }
         } catch (error) {
-            console.error('Error al actualizar datos del alumno:', error);
+            console.error('Error:', error);
             location.reload();
         }
     }
 
-    // =========================================================================
-    // GENERAR BADGE — progreso siempre como X/Y (suma de cantidades)
-    // =========================================================================
     function generarBadgeEstado(estado, progreso) {
-        // progreso viene del backend como "X/Y" directo, ej: "4/6"
         if (!progreso) progreso = '0/0';
 
         const badges = {
@@ -794,7 +793,7 @@
     }
 
     // =========================================================================
-    // SISTEMA DE FILTROS
+    // FILTROS
     // =========================================================================
     const searchInput   = document.getElementById('searchInput');
     const filterUtil    = document.getElementById('filterUtil');
@@ -802,34 +801,25 @@
     const btnClearFilters = document.getElementById('btnClearFilters');
     
     function aplicarFiltros() {
-        const searchTerm        = searchInput.value.toLowerCase();
-        const utilSeleccionado  = filterUtil.value;          // PK del util o ""
-        const estadoSeleccionado = filterEstado.value;       // "completo"|"parcial"|"no_entrego"|"sin_lista" o ""
+        const searchTerm = searchInput.value.toLowerCase();
+        const utilSeleccionado = filterUtil.value;
+        const estadoSeleccionado = filterEstado.value;
         
         const filas = document.querySelectorAll('.data-table tbody tr[data-alumno-id]');
         
         filas.forEach(fila => {
             let mostrar = true;
             
-            // --- Filtro de búsqueda (nombre o DNI) ---
             if (searchTerm) {
                 const textoFila = fila.textContent.toLowerCase();
-                if (!textoFila.includes(searchTerm)) {
-                    mostrar = false;
-                }
+                if (!textoFila.includes(searchTerm)) mostrar = false;
             }
             
-            // --- Filtro por estado GLOBAL del alumno (sin util específico) ---
-            // Solo se aplica cuando NO hay util seleccionado
             if (estadoSeleccionado && !utilSeleccionado && mostrar) {
                 const estadoFila = fila.getAttribute('data-estado');
-                if (estadoFila !== estadoSeleccionado) {
-                    mostrar = false;
-                }
+                if (estadoFila !== estadoSeleccionado) mostrar = false;
             }
             
-            // --- Filtro por util específico ---
-            // Cuando hay util seleccionado, filtra por el estado de ese util en particular
             if (utilSeleccionado && mostrar) {
                 const entregasJson = fila.getAttribute('data-entregas');
                 if (entregasJson) {
@@ -838,10 +828,8 @@
                         const entregaUtil = entregas.find(e => String(e.util_id) === String(utilSeleccionado));
 
                         if (!entregaUtil) {
-                            // El alumno no tiene ese util asignado
                             mostrar = false;
                         } else if (estadoSeleccionado) {
-                            // Determinar estado de ese util específico según sus cantidades
                             let estadoUtil;
                             if (entregaUtil.cantidad_entregada === 0) {
                                 estadoUtil = 'no_entrego';
@@ -851,12 +839,10 @@
                                 estadoUtil = 'completo';
                             }
                             
-                            if (estadoUtil !== estadoSeleccionado) {
-                                mostrar = false;
-                            }
+                            if (estadoUtil !== estadoSeleccionado) mostrar = false;
                         }
                     } catch (e) {
-                        console.error('Error parseando entregas:', e);
+                        console.error('Error:', e);
                     }
                 }
             }
@@ -867,21 +853,19 @@
         actualizarEstadisticas();
     }
     
-    // Event listeners para filtros
     searchInput.addEventListener('input', aplicarFiltros);
     filterUtil.addEventListener('change', aplicarFiltros);
     filterEstado.addEventListener('change', aplicarFiltros);
     
-    // Limpiar filtros
     btnClearFilters.addEventListener('click', function() {
-        searchInput.value  = '';
-        filterUtil.value   = '';
+        searchInput.value = '';
+        filterUtil.value = '';
         filterEstado.value = '';
         aplicarFiltros();
     });
 
     // =========================================================================
-    // ELIMINAR ALUMNO (AJAX)
+    // ELIMINAR ALUMNO
     // =========================================================================
     function eliminarAlumno(alumnoId, nombre) {
         if (!confirm(`¿Eliminar a ${nombre}? Esta acción no se puede deshacer.`)) return;
@@ -897,42 +881,36 @@
                 actualizarEstadisticas();
             }
         })
-        .catch(() => alert('Error al eliminar. Recarga la página.'));
+        .catch(() => alert('Error al eliminar.'));
     }
 
     // =========================================================================
-    // ESTADÍSTICAS EN TIEMPO REAL
-    // Lee el data-estado de cada fila visible → no depende del texto del badge
+    // ESTADÍSTICAS
     // =========================================================================
     function actualizarEstadisticas() {
         const filas = document.querySelectorAll('.data-table tbody tr[data-alumno-id]');
-        let totalAlumnos  = 0;
+        let totalAlumnos = 0;
         let totalCompletos = 0;
         let totalParciales = 0;
         let totalPendientes = 0;
         
         filas.forEach(fila => {
-            // Solo contar filas visibles
             if (fila.style.display === 'none') return;
 
             totalAlumnos++;
             const estado = fila.getAttribute('data-estado');
 
-            if (estado === 'completo')    totalCompletos++;
+            if (estado === 'completo') totalCompletos++;
             else if (estado === 'parcial') totalParciales++;
             else if (estado === 'no_entrego') totalPendientes++;
-            // 'sin_lista' no se cuenta en ningún contador específico
         });
         
-        document.getElementById('stat-total').textContent      = totalAlumnos;
-        document.getElementById('stat-completos').textContent  = totalCompletos;
-        document.getElementById('stat-parciales').textContent  = totalParciales;
+        document.getElementById('stat-total').textContent = totalAlumnos;
+        document.getElementById('stat-completos').textContent = totalCompletos;
+        document.getElementById('stat-parciales').textContent = totalParciales;
         document.getElementById('stat-pendientes').textContent = totalPendientes;
     }
 
-    // =========================================================================
-    // UTILIDAD: CSRF Token
-    // =========================================================================
     function getCsrfToken() {
         const match = document.cookie.match(/csrftoken=([^;]+)/);
         return match ? match[1] : '';
